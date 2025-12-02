@@ -1,6 +1,6 @@
 /**
- * EXXEED BLOG SYSTEM V8
- * Features: A11y (Keyboard/ScreenReader), History API (Back Button), Custom Favicon
+ * EXXEED BLOG SYSTEM V9
+ * Features: Custom Toast Notifications, A11y, History API, Custom Favicon
  */
 
 // --- 1. DATA ---
@@ -33,25 +33,31 @@ const DEFAULT_POSTS = [
     date: "DEC 01",
     title: "I Finally Did It",
     tag: "LOG_001",
-    teaser: "Breaking the cycle of perfectionism. The site is live, flaws and all.",
-    content: "I wasn't able to do everything on my checklist today. The perfectionist wants to scrub the mission and start over. But the developer in me knows better. <br><br> I decided to stop tweaking the CSS framework. It was fighting me. Sometimes you have to strip it all down to the basics."
+    teaser:
+      "Breaking the cycle of perfectionism. The site is live, flaws and all.",
+    content:
+      "I wasn't able to do everything on my checklist today. The perfectionist wants to scrub the mission and start over. But the developer in me knows better. <br><br> I decided to stop tweaking the CSS framework. It was fighting me. Sometimes you have to strip it all down to the basics.",
   },
   {
     id: "2",
     date: "NOV 29",
     title: "Docker Chaos",
     tag: "LOG_002",
-    teaser: "Sometimes learning feels like drowning. Today was one of those days.",
-    content: "I discovered a better Figma alternative today called Penpot. Being open-source, I had to install it using Docker. I spent 4 hours just fighting with containers. <br><br> It felt like a waste of time, but looking back at the logs, I realized I learned more about port forwarding in those 4 hours than I did in the last month of tutorials."
+    teaser:
+      "Sometimes learning feels like drowning. Today was one of those days.",
+    content:
+      "I discovered a better Figma alternative today called Penpot. Being open-source, I had to install it using Docker. I spent 4 hours just fighting with containers. <br><br> It felt like a waste of time, but looking back at the logs, I realized I learned more about port forwarding in those 4 hours than I did in the last month of tutorials.",
   },
   {
     id: "3",
     date: "NOV 25",
     title: "Origin Point",
     tag: "LOG_003",
-    teaser: "Defining the mission parameters before writing a single line of code.",
-    content: "Every project needs a North Star. For Exceed, it is about discipline in code. No bloat. No frameworks unless necessary. Pure creative control."
-  }
+    teaser:
+      "Defining the mission parameters before writing a single line of code.",
+    content:
+      "Every project needs a North Star. For Exceed, it is about discipline in code. No bloat. No frameworks unless necessary. Pure creative control.",
+  },
 ];
 
 export default {
@@ -66,7 +72,10 @@ export default {
         await env.BLOG_KV.put("posts", JSON.stringify(posts));
       }
       return new Response(JSON.stringify(posts), {
-        headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=60" },
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "public, max-age=60",
+        },
       });
     }
 
@@ -78,16 +87,22 @@ export default {
     }
 
     // API: SAVE POST
-    if (url.pathname === "/api/posts" && (request.method === "POST" || request.method === "PUT")) {
+    if (
+      url.pathname === "/api/posts" &&
+      (request.method === "POST" || request.method === "PUT")
+    ) {
       const auth = request.headers.get("Authorization");
       if (auth !== env.ADMIN_PASS)
-        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+        });
       try {
         const incomingPost = await request.json();
         if (!incomingPost.title || !incomingPost.content)
           return new Response("Invalid Data", { status: 400 });
-        let posts = (await env.BLOG_KV.get("posts", { type: "json" })) || DEFAULT_POSTS;
-        
+        let posts =
+          (await env.BLOG_KV.get("posts", { type: "json" })) || DEFAULT_POSTS;
+
         if (request.method === "POST") posts.unshift(incomingPost);
         else {
           const index = posts.findIndex((p) => p.id === incomingPost.id);
@@ -124,7 +139,7 @@ const html = `
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=JetBrains+Mono:wght@400;700&family=Manrope:wght@300;400;700&family=Major+Mono+Display&display=swap" rel="stylesheet" />
     
-    <!-- Custom Favicon (Exxeed Red X) -->
+    <!-- Custom Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cstyle%3E text %7B font-family: monospace; font-weight: bold; fill: %23ff3333; font-size: 80px; %7D %3C/style%3E%3Ctext x='50' y='75' text-anchor='middle'%3EX%3C/text%3E%3C/svg%3E">
 
     <style>
@@ -137,6 +152,7 @@ const html = `
         --card-hover: rgba(0,0,0,0.05); 
         --logo-x: #00f0ff;
         --focus-ring: #ff3333;
+        --toast-bg: rgba(0,0,0,0.9);
       }
       [data-theme="dark"] {
         --bg-main: #222222; --bg-panel: #282828;
@@ -144,6 +160,7 @@ const html = `
         --accent: #00f0ff; --border: #21262d;
         --input-bg: #30363d; --card-hover: rgba(0, 240, 255, 0.05);
         --focus-ring: #00f0ff;
+        --toast-bg: rgba(255,255,255,0.9);
       }
 
       * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -163,6 +180,38 @@ const html = `
       .noise-overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; opacity: 0.04;
         background: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noise"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noise)" opacity="1"/%3E%3C/svg%3E');
+      }
+
+      /* --- TOAST NOTIFICATIONS (CUSTOM ALERTS) --- */
+      #toast-container {
+          position: fixed; bottom: 2rem; right: 2rem; z-index: 2000;
+          display: flex; flex-direction: column; gap: 0.8rem; pointer-events: none;
+      }
+      .toast {
+          background: #1a1a1a;
+          color: #fff;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.9rem;
+          padding: 1rem 1.5rem;
+          border-left: 4px solid var(--accent);
+          box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+          min-width: 250px;
+          opacity: 0;
+          transform: translateY(20px);
+          animation: slideUpFade 0.3s forwards;
+          pointer-events: all;
+          display: flex; align-items: center;
+      }
+      [data-theme="dark"] .toast { background: #000; border: 1px solid #333; border-left: 4px solid var(--accent); }
+      
+      .toast.success { border-left-color: #4caf50; }
+      .toast.error { border-left-color: #ff3333; }
+      
+      @keyframes slideUpFade {
+          to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes fadeOut {
+          to { opacity: 0; transform: translateX(20px); }
       }
 
       /* --- LAYOUT --- */
@@ -226,7 +275,6 @@ const html = `
 
       /* --- DOSSIER & AVATAR --- */
       .dossier-section { margin-top: 6rem; padding-top: 4rem; border-top: 2px solid var(--border); }
-      
       .dossier-grid { display: flex; gap: 3rem; align-items: flex-start; margin-bottom: 3rem; }
       .dossier-avatar {
         width: 150px; height: 150px; border-radius: 50%; border: 2px solid var(--accent);
@@ -307,7 +355,6 @@ const html = `
         .content-container { padding: 4rem 2rem; }
         .brand-vertical { display: none; }
         .mobile-toggle { display: block; }
-        
         .dossier-grid { flex-direction: column; align-items: center; text-align: center; }
         
         .nav-dock { 
@@ -323,6 +370,9 @@ const html = `
   </head>
   <body>
     <div class="noise-overlay"></div>
+    
+    <!-- Notification Container -->
+    <div id="toast-container"></div>
 
     <button class="theme-switch" onclick="toggleTheme()" aria-label="Toggle Theme">
         <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
@@ -361,7 +411,6 @@ const html = `
             <h2 class="article-title" style="font-size: 2.5rem;">About EX<span class="brand-x">X</span>EED</h2>
             
             <div class="dossier-grid">
-                 <!-- Make sure to replace this URL -->
                  <img src="https://i.imgur.com/3x1dKUX.jpeg" class="dossier-avatar" alt="Operator Avatar" onerror="this.src='https://via.placeholder.com/150/ff3333/000000?text=EXXEED'">
                  <div>
                     <p style="font-size: 1.2rem; line-height: 1.6; color: var(--text-muted);">
@@ -450,17 +499,31 @@ const html = `
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         if(isDark) { document.documentElement.removeAttribute('data-theme'); localStorage.setItem('theme', 'light'); }
         else { document.documentElement.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark'); }
+        showToast("THEME SETTINGS UPDATED", "info");
       }
       initTheme();
 
       function toggleMobileNav() { document.getElementById('mainNav').classList.toggle('active-mobile'); }
 
-      // --- HISTORY & NAVIGATION HANDLER ---
+      // --- NOTIFICATION SYSTEM ---
+      function showToast(msg, type = 'info') {
+        const container = document.getElementById('toast-container');
+        const el = document.createElement('div');
+        el.className = \`toast \${type}\`;
+        el.innerHTML = \`> SYSTEM: \${msg}\`;
+        container.appendChild(el);
+        // Animation handle
+        setTimeout(() => {
+            el.style.animation = "fadeOut 0.4s forwards";
+            setTimeout(() => el.remove(), 400);
+        }, 3000);
+      }
+
+      // --- HISTORY & A11Y ---
       window.addEventListener('popstate', (event) => {
         if(event.state) {
-            // Restore view from history
             if(event.state.view === 'single' && event.state.postId) {
-                openPost(event.state.postId, false); // false = don't push history again
+                openPost(event.state.postId, false);
             } else {
                 switchView(event.state.view || 'home', false);
             }
@@ -469,7 +532,6 @@ const html = `
         }
       });
 
-      // Keyboard Accessibility Helper
       function handleKey(e, action) {
           if(e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
@@ -485,7 +547,10 @@ const html = `
           const resTime = await fetch('/api/timeline');
           timelineData = await resTime.json();
           renderViews();
-        } catch (e) { console.error("Error", e); }
+        } catch (e) { 
+            console.error("Error", e);
+            showToast("DATA CONNECTION FAILED", "error");
+        }
       }
 
       function renderViews() {
@@ -563,7 +628,6 @@ const html = `
         div.setAttribute('aria-label', 'Read ' + post.title);
         div.onclick = () => openPost(post.id);
         div.onkeydown = (e) => handleKey(e, () => openPost(post.id));
-        
         div.innerHTML = \`<div class="post-meta"><span class="post-tag">\${post.tag}</span><span class="post-date">\${post.date}</span></div><h2 class="post-title">\${post.title}</h2><p class="post-teaser">\${post.teaser}</p>\`;
         return div;
       }
@@ -572,7 +636,6 @@ const html = `
         document.getElementById('mainNav').classList.remove('active-mobile');
         document.querySelectorAll(".nav-link").forEach(el => el.classList.remove("active"));
         
-        // Match nav based on index/order or data attribute. Simplified here:
         const links = document.querySelectorAll(".nav-link");
         if (view === 'home') links[0].classList.add("active");
         if (view === 'archive') links[1].classList.add("active");
@@ -589,7 +652,6 @@ const html = `
         activeEl.classList.add('active-view');
         document.getElementById("rightPane").scrollTop = 0;
 
-        // Manage History
         if(pushToHistory) {
             history.pushState({ view: view }, "", "#" + view);
         }
@@ -602,7 +664,10 @@ const html = `
               document.getElementById('admin-panel').classList.add('unlocked');
               document.getElementById('admin-header').innerText = "Dashboard";
               document.getElementById('admin-pass').value = pass;
-          } else { alert("Passkey required."); }
+              showToast("ACCESS GRANTED", "success");
+          } else { 
+              showToast("INVALID PASSKEY", "error"); 
+          }
       }
 
       function openPost(id, pushToHistory = true) {
@@ -613,13 +678,10 @@ const html = `
             <h1 class="article-title">\${p.title}</h1>
             <div class="article-body"><p>\${p.content}</p></div>
         \`;
-        
-        // Push ID to history so back button re-opens this specific post
         if(pushToHistory) {
              history.pushState({ view: 'single', postId: id }, "", "#post-" + id);
         }
-        
-        switchView('single', false); // Don't push generic view state, we pushed specific ID state above
+        switchView('single', false);
       }
 
       function resetForm() {
@@ -654,8 +716,8 @@ const html = `
         const teaser = document.getElementById('post-teaser').value;
         const content = document.getElementById('post-content').value;
 
-        if(!pass) { alert("Session Expired. Please reload."); return; }
-        if(!title) { alert("Missing Data"); return; }
+        if(!pass) { showToast("SESSION EXPIRED. REFRESH.", "error"); return; }
+        if(!title) { showToast("MISSING PARAMETERS", "error"); return; }
         const method = id ? 'PUT' : 'POST';
         const payload = { id: id || Date.now().toString(), title, tag, date, teaser, content };
 
@@ -666,24 +728,27 @@ const html = `
                 body: JSON.stringify(payload)
             });
             if(res.status === 200 || res.status === 201) {
-                alert("Success");
+                showToast("ENTRY SAVED SUCCESSFULLY", "success");
                 resetForm();
                 await fetchData();
                 if(method === 'POST') switchView('home'); 
-            } else { alert("Auth Failed: Incorrect Password"); }
-        } catch (e) { alert("Error"); }
+            } else { showToast("AUTH FAILED", "error"); }
+        } catch (e) { showToast("NETWORK ERROR", "error"); }
       }
 
-      // Initial State Check
       window.onload = () => {
          fetchData();
-         // Handle direct link with hash
          if(window.location.hash) {
              const h = window.location.hash;
              if(h.startsWith('#post-')) {
-                 // Wait for fetch, then open? openPost requires data. 
-                 // Simple approach: data load handles rendering. 
+                 // handled after fetch
              } else {
                  const v = h.replace('#', '');
                  switchView(v, false);
              }
+         }
+      };
+    </script>
+  </body>
+</html>
+`;
