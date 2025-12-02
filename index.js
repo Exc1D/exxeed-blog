@@ -1,25 +1,29 @@
 /**
- * EXXEED BLOG SYSTEM V7
- * Features: Avatar Integration, Admin Gate, Custom Logo, Timeline
+ * EXXEED BLOG SYSTEM V8
+ * Features: A11y (Keyboard/ScreenReader), History API (Back Button), Custom Favicon
  */
 
-// --- 1. CONFIGURATION & DATA ---
-
+// --- 1. DATA ---
 const TIMELINE_DATA = [
   {
     year: "2025 - PRESENT",
-    title: "Freelance Developer & Creator",
-    desc: "Building 'Exceed'. Learning publicly. Mastering the MERN stack.",
+    title: "Upcoming Full-stack Developer",
+    desc: "Crunching The Odin Project and Scrimba.",
+  },
+  {
+    year: "2024",
+    title: "The Spark",
+    desc: "Enrolled in a degree for IT. Found my calling.",
   },
   {
     year: "2021 - 2024",
     title: "Philippine Military Academy",
-    desc: "Cadet. Learned leadership, resilience, and how to polish shoes until they mirrored the soul.",
+    desc: "Cadet. Warshocked into a military way of life, polished shoes until they mirrored the soul. (Got injured then was discharged)",
   },
   {
-    year: "ORIGIN",
-    title: "The Spark",
-    desc: "Realized that code is the ultimate weapon for creation.",
+    year: "2018-2021",
+    title: "The Valley of Confusion",
+    desc: "College at Ateneo De Naga, jumped from one course to another.",
   },
 ];
 
@@ -29,38 +33,32 @@ const DEFAULT_POSTS = [
     date: "DEC 01",
     title: "I Finally Did It",
     tag: "LOG_001",
-    teaser:
-      "Breaking the cycle of perfectionism. The site is live, flaws and all.",
-    content:
-      "I wasn't able to do everything on my checklist today. The perfectionist wants to scrub the mission and start over. But the developer in me knows better. <br><br> I decided to stop tweaking the CSS framework. It was fighting me. Sometimes you have to strip it all down to the basics.",
+    teaser: "Breaking the cycle of perfectionism. The site is live, flaws and all.",
+    content: "I wasn't able to do everything on my checklist today. The perfectionist wants to scrub the mission and start over. But the developer in me knows better. <br><br> I decided to stop tweaking the CSS framework. It was fighting me. Sometimes you have to strip it all down to the basics."
   },
   {
     id: "2",
     date: "NOV 29",
     title: "Docker Chaos",
     tag: "LOG_002",
-    teaser:
-      "Sometimes learning feels like drowning. Today was one of those days.",
-    content:
-      "I discovered a better Figma alternative today called Penpot. Being open-source, I had to install it using Docker. I spent 4 hours just fighting with containers. <br><br> It felt like a waste of time, but looking back at the logs, I realized I learned more about port forwarding in those 4 hours than I did in the last month of tutorials.",
+    teaser: "Sometimes learning feels like drowning. Today was one of those days.",
+    content: "I discovered a better Figma alternative today called Penpot. Being open-source, I had to install it using Docker. I spent 4 hours just fighting with containers. <br><br> It felt like a waste of time, but looking back at the logs, I realized I learned more about port forwarding in those 4 hours than I did in the last month of tutorials."
   },
   {
     id: "3",
     date: "NOV 25",
     title: "Origin Point",
     tag: "LOG_003",
-    teaser:
-      "Defining the mission parameters before writing a single line of code.",
-    content:
-      "Every project needs a North Star. For Exceed, it is about discipline in code. No bloat. No frameworks unless necessary. Pure creative control.",
-  },
+    teaser: "Defining the mission parameters before writing a single line of code.",
+    content: "Every project needs a North Star. For Exceed, it is about discipline in code. No bloat. No frameworks unless necessary. Pure creative control."
+  }
 ];
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // --- API ROUTES ---
+    // API: GET POSTS
     if (url.pathname === "/api/posts" && request.method === "GET") {
       let posts = await env.BLOG_KV.get("posts", { type: "json" });
       if (!posts) {
@@ -68,43 +66,33 @@ export default {
         await env.BLOG_KV.put("posts", JSON.stringify(posts));
       }
       return new Response(JSON.stringify(posts), {
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "public, max-age=60",
-        },
+        headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=60" },
       });
     }
 
+    // API: GET TIMELINE
     if (url.pathname === "/api/timeline" && request.method === "GET") {
       return new Response(JSON.stringify(TIMELINE_DATA), {
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    if (
-      url.pathname === "/api/posts" &&
-      (request.method === "POST" || request.method === "PUT")
-    ) {
+    // API: SAVE POST
+    if (url.pathname === "/api/posts" && (request.method === "POST" || request.method === "PUT")) {
       const auth = request.headers.get("Authorization");
       if (auth !== env.ADMIN_PASS)
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-        });
-
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
       try {
         const incomingPost = await request.json();
         if (!incomingPost.title || !incomingPost.content)
           return new Response("Invalid Data", { status: 400 });
-
-        let posts =
-          (await env.BLOG_KV.get("posts", { type: "json" })) || DEFAULT_POSTS;
-
+        let posts = (await env.BLOG_KV.get("posts", { type: "json" })) || DEFAULT_POSTS;
+        
         if (request.method === "POST") posts.unshift(incomingPost);
         else {
           const index = posts.findIndex((p) => p.id === incomingPost.id);
           if (index !== -1) posts[index] = incomingPost;
         }
-
         await env.BLOG_KV.put("posts", JSON.stringify(posts));
         return new Response("Saved", { status: 200 });
       } catch (e) {
@@ -112,7 +100,7 @@ export default {
       }
     }
 
-    // --- SERVE HTML ---
+    // SERVE HTML
     return new Response(html, {
       headers: {
         "Content-Type": "text/html",
@@ -132,9 +120,13 @@ const html = `
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Exceed Mission Log.">
     <title>EXXEED | The Mission Log</title>
+    
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=JetBrains+Mono:wght@400;700&family=Manrope:wght@300;400;700&family=Major+Mono+Display&display=swap" rel="stylesheet" />
     
+    <!-- Custom Favicon (Exxeed Red X) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cstyle%3E text %7B font-family: monospace; font-weight: bold; fill: %23ff3333; font-size: 80px; %7D %3C/style%3E%3Ctext x='50' y='75' text-anchor='middle'%3EX%3C/text%3E%3C/svg%3E">
+
     <style>
       /* --- THEME --- */
       :root {
@@ -142,17 +134,26 @@ const html = `
         --text-main: #0a0a0a; --text-muted: #111111;
         --accent: #ff3333; --border: #222222;
         --input-bg: rgba(255,255,255,0.1);
-        --card-hover: rgba(0,0,0,0.05);
-        --logo-x: #00f0ff; 
+        --card-hover: rgba(0,0,0,0.05); 
+        --logo-x: #00f0ff;
+        --focus-ring: #ff3333;
       }
       [data-theme="dark"] {
         --bg-main: #222222; --bg-panel: #282828;
         --text-main: #e6edf3; --text-muted: #8b949e;
         --accent: #00f0ff; --border: #21262d;
         --input-bg: #30363d; --card-hover: rgba(0, 240, 255, 0.05);
+        --focus-ring: #00f0ff;
       }
 
       * { margin: 0; padding: 0; box-sizing: border-box; }
+      
+      /* Accessibility Focus Styles */
+      :focus-visible {
+        outline: 3px solid var(--focus-ring);
+        outline-offset: 2px;
+      }
+
       body {
         background-color: var(--bg-main); color: var(--text-main);
         font-family: "Manrope", sans-serif; height: 100vh; width: 100vw;
@@ -181,6 +182,7 @@ const html = `
       .nav-link {
         color: #ccc; text-decoration: none; font-family: "JetBrains Mono", monospace; font-size: 0.8rem;
         text-transform: uppercase; letter-spacing: 1px; transition: all 0.3s; cursor: pointer; position: relative; display: flex; align-items: center;
+        border: none; background: none;
       }
       .nav-link:hover, .nav-link.active { color: #fff; text-shadow: 0 0 8px var(--accent); }
       .nav-link.active::after {
@@ -198,7 +200,7 @@ const html = `
         background: none; border: none; cursor: pointer; opacity: 0.2; transition: opacity 0.3s, transform 0.3s;
         color: var(--text-main);
       }
-      .theme-switch:hover { opacity: 1; transform: rotate(15deg); }
+      .theme-switch:hover, .theme-switch:focus { opacity: 1; transform: rotate(15deg); }
       .theme-switch svg { width: 24px; height: 24px; fill: currentColor; }
 
       /* --- BRANDING --- */
@@ -208,7 +210,7 @@ const html = `
         writing-mode: vertical-rl; transform: rotate(180deg);
       }
       .brand-x {
-        font-family: "Major Mono Display", monospace; color: var(--logo-x);
+        font-family: "Major Mono Display", monospace; color: var(--accent);
         font-size: 1.2em; font-weight: bold; display: inline-block; transform: translateY(2px);
       }
       .mission-stat { font-family: "JetBrains Mono", monospace; border-left: 2px solid var(--accent); padding-left: 1rem; margin-bottom: 2rem; }
@@ -225,21 +227,12 @@ const html = `
       /* --- DOSSIER & AVATAR --- */
       .dossier-section { margin-top: 6rem; padding-top: 4rem; border-top: 2px solid var(--border); }
       
-      .dossier-grid {
-        display: flex; gap: 3rem; align-items: flex-start; margin-bottom: 3rem;
-      }
+      .dossier-grid { display: flex; gap: 3rem; align-items: flex-start; margin-bottom: 3rem; }
       .dossier-avatar {
-        width: 150px; height: 150px;
-        border-radius: 50%;
-        border: 2px solid var(--accent);
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-        object-fit: cover;
-        flex-shrink: 0;
-        transition: all 0.3s ease;
+        width: 150px; height: 150px; border-radius: 50%; border: 2px solid var(--accent);
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.3); object-fit: cover; flex-shrink: 0; transition: all 0.3s ease;
       }
-      [data-theme="dark"] .dossier-avatar {
-          box-shadow: 0 0 20px rgba(0, 240, 255, 0.3); /* Cyan Glow in Dark Mode */
-      }
+      [data-theme="dark"] .dossier-avatar { box-shadow: 0 0 20px rgba(0, 240, 255, 0.3); }
       .dossier-avatar:hover { transform: scale(1.05); }
       
       .timeline-container { position: relative; }
@@ -272,7 +265,7 @@ const html = `
         background: transparent; border: 1px solid var(--border); color: var(--text-muted);
         font-family: "JetBrains Mono"; cursor: pointer; text-transform: uppercase; transition: all 0.3s;
       }
-      .see-more-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+      .see-more-btn:hover, .see-more-btn:focus { background: var(--accent); color: #000; border-color: var(--accent); }
 
       /* --- ADMIN --- */
       .admin-gate { text-align: center; padding: 4rem 0; }
@@ -298,7 +291,7 @@ const html = `
         color: var(--text-main); font-family: "JetBrains Mono"; outline: none;
       }
       .btn { background: var(--accent); color: #000; border: none; padding: 1rem 2rem; font-family: "JetBrains Mono"; cursor: pointer; font-weight: bold; margin-right: 1rem; transition: transform 0.2s; }
-      .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+      .btn:hover, .btn:focus { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
 
       .admin-list-item { 
           display: flex; justify-content: space-between; align-items: center; 
@@ -340,11 +333,11 @@ const html = `
     </button>
 
     <nav class="nav-dock" id="mainNav">
-      <a class="nav-link active" onclick="switchView('home')">Log</a>
-      <a class="nav-link" onclick="switchView('archive')">Archive</a>
-      <a class="nav-link" onclick="switchView('admin')" aria-label="Admin Access">
+      <button class="nav-link active" onclick="switchView('home')" aria-label="Go to Home Log">Log</button>
+      <button class="nav-link" onclick="switchView('archive')" aria-label="Go to Archive">Archive</button>
+      <button class="nav-link" onclick="switchView('admin')" aria-label="Admin Access">
          <svg style="width:18px; height:18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-      </a>
+      </button>
     </nav>
 
     <aside class="left-pane">
@@ -359,22 +352,20 @@ const html = `
     <main class="right-pane" id="rightPane">
       
       <!-- VIEW 1: HOME -->
-      <div id="view-home" class="content-container active-view">
+      <div id="view-home" class="content-container active-view" role="tabpanel">
         <span class="meta-tag">MISSION LOG // LATEST</span>
         <h1 class="article-title">The Journey <br />So Far.</h1>
         <div id="home-posts" style="margin-top: 4rem;">Loading...</div>
         
         <div class="dossier-section">
-            <h2 class="article-title" style="font-size: 2.5rem;">About EXXEED</h2>
+            <h2 class="article-title" style="font-size: 2.5rem;">About EX<span class="brand-x">X</span>EED</h2>
             
-            <!-- NEW: Avatar + Description Grid -->
             <div class="dossier-grid">
-                 <!-- PASTE YOUR IMAGE LINK HERE IN 'src' -->
-                 <img src="PASTE_YOUR_IMAGE_URL_HERE" class="dossier-avatar" alt="Operator Avatar" onerror="this.src='https://via.placeholder.com/150/ff3333/000000?text=EXXEED'">
-                 
+                 <!-- Make sure to replace this URL -->
+                 <img src="https://i.imgur.com/3x1dKUX.jpeg" class="dossier-avatar" alt="Operator Avatar" onerror="this.src='https://via.placeholder.com/150/ff3333/000000?text=EXXEED'">
                  <div>
                     <p style="font-size: 1.2rem; line-height: 1.6; color: var(--text-muted);">
-                      Former PMA Cadet turned Full-Stack Developer. I traded a rifle for a keyboard, but kept the discipline.
+                      Former PMA Cadet turned Full-Stack Developer. I traded my rifle for a keyboard, but kept the discipline.
                     </p>
                  </div>
             </div>
@@ -385,31 +376,31 @@ const html = `
       </div>
 
       <!-- VIEW 2: ARCHIVE -->
-      <div id="view-archive" class="content-container">
+      <div id="view-archive" class="content-container" role="tabpanel">
         <span class="meta-tag">FULL DATABASE</span>
         <h1 class="article-title">All Logs.</h1>
         <div class="search-wrapper">
              <span class="search-icon">></span>
-             <input type="text" class="search-input" placeholder="Search parameters..." onkeyup="filterList(this.value, 'archive')">
+             <input type="text" class="search-input" placeholder="Search parameters..." onkeyup="filterList(this.value, 'archive')" aria-label="Search posts">
         </div>
         <div id="archive-posts"></div>
         <button id="archive-btn" class="see-more-btn" style="display:none" onclick="toggleLimit('archive')">See More [ + ]</button>
       </div>
 
       <!-- VIEW 3: SINGLE -->
-      <div id="view-single" class="content-container">
-        <a class="back-btn" onclick="switchView('home')"><< RETURN</a>
+      <div id="view-single" class="content-container" role="tabpanel">
+        <a class="back-btn" onclick="switchView('home')" tabindex="0" role="button" onkeydown="handleKey(event, () => switchView('home'))" aria-label="Return to previous page"><< RETURN</a>
         <div id="single-post-content"></div>
       </div>
 
       <!-- VIEW 4: ADMIN -->
-      <div id="view-admin" class="content-container">
+      <div id="view-admin" class="content-container" role="tabpanel">
         <span class="meta-tag">RESTRICTED ACCESS</span>
         <h1 class="article-title" id="admin-header">Admin Link</h1>
         
         <div id="admin-gate" class="admin-gate">
             <p style="font-family:'JetBrains Mono'; margin-bottom:1rem; color:var(--text-muted);">ENCRYPTED CONNECTION REQUIRED</p>
-            <input type="password" id="gate-pass" placeholder="Enter Passkey">
+            <input type="password" id="gate-pass" placeholder="Enter Passkey" aria-label="Password">
             <br>
             <button class="btn" onclick="unlockAdmin()">Authenticate</button>
         </div>
@@ -418,13 +409,13 @@ const html = `
             <div class="admin-form">
                 <input type="hidden" id="post-id"> 
                 <input type="password" id="admin-pass" placeholder="Access Code Confirm" style="display:none;">
-                <input type="text" id="post-title" placeholder="Mission Title">
+                <input type="text" id="post-title" placeholder="Mission Title" aria-label="Post Title">
                 <div style="display: flex; gap: 1rem;">
-                    <input type="text" id="post-tag" placeholder="ID (LOG_005)" style="flex:1">
-                    <input type="text" id="post-date" placeholder="Date (DEC 05)" style="flex:1">
+                    <input type="text" id="post-tag" placeholder="ID (LOG_005)" style="flex:1" aria-label="Log ID">
+                    <input type="text" id="post-date" placeholder="Date (DEC 05)" style="flex:1" aria-label="Post Date">
                 </div>
-                <input type="text" id="post-teaser" placeholder="Teaser">
-                <textarea id="post-content" placeholder="Content (HTML Allowed)"></textarea>
+                <input type="text" id="post-teaser" placeholder="Teaser" aria-label="Teaser">
+                <textarea id="post-content" placeholder="Content (HTML Allowed)" aria-label="Content"></textarea>
                 <button class="btn" onclick="submitPost()" id="submit-btn">Submit Log</button>
                 <button class="btn" style="background:#555; color:#fff;" onclick="resetForm()">Clear</button>
             </div>
@@ -433,7 +424,7 @@ const html = `
                 <h3 style="font-family: 'Cinzel'; margin-bottom: 1rem;">Manage Logs</h3>
                 <div class="search-wrapper">
                     <span class="search-icon">></span>
-                    <input type="text" class="search-input" placeholder="Search database..." onkeyup="filterList(this.value, 'admin')">
+                    <input type="text" class="search-input" placeholder="Search database..." onkeyup="filterList(this.value, 'admin')" aria-label="Search Admin DB">
                 </div>
                 <div id="admin-post-list"></div>
                 <button id="admin-btn" class="see-more-btn" style="display:none" onclick="toggleLimit('admin')">See More [ + ]</button>
@@ -463,6 +454,28 @@ const html = `
       initTheme();
 
       function toggleMobileNav() { document.getElementById('mainNav').classList.toggle('active-mobile'); }
+
+      // --- HISTORY & NAVIGATION HANDLER ---
+      window.addEventListener('popstate', (event) => {
+        if(event.state) {
+            // Restore view from history
+            if(event.state.view === 'single' && event.state.postId) {
+                openPost(event.state.postId, false); // false = don't push history again
+            } else {
+                switchView(event.state.view || 'home', false);
+            }
+        } else {
+            switchView('home', false);
+        }
+      });
+
+      // Keyboard Accessibility Helper
+      function handleKey(e, action) {
+          if(e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              action();
+          }
+      }
 
       async function fetchData() {
         try {
@@ -516,7 +529,7 @@ const html = `
             else {
                 const div = document.createElement('div');
                 div.className = 'admin-list-item';
-                div.innerHTML = \`<span style="font-family:'JetBrains Mono'">\${p.tag} - \${p.title}</span><span style="cursor:pointer; text-decoration:underline" onclick="loadIntoForm('\${p.id}')">[EDIT]</span>\`;
+                div.innerHTML = \`<span style="font-family:'JetBrains Mono'">\${p.tag} - \${p.title}</span><span style="cursor:pointer; text-decoration:underline" tabindex="0" role="button" onkeydown="handleKey(event, () => loadIntoForm('\${p.id}'))" onclick="loadIntoForm('\${p.id}')">[EDIT]</span>\`;
                 container.appendChild(div);
             }
          });
@@ -545,27 +558,41 @@ const html = `
       function createPostHTML(post) {
         const div = document.createElement('div');
         div.className = 'post-item';
+        div.setAttribute('role', 'button');
+        div.setAttribute('tabindex', '0');
+        div.setAttribute('aria-label', 'Read ' + post.title);
         div.onclick = () => openPost(post.id);
+        div.onkeydown = (e) => handleKey(e, () => openPost(post.id));
+        
         div.innerHTML = \`<div class="post-meta"><span class="post-tag">\${post.tag}</span><span class="post-date">\${post.date}</span></div><h2 class="post-title">\${post.title}</h2><p class="post-teaser">\${post.teaser}</p>\`;
         return div;
       }
 
-      function switchView(view) {
+      function switchView(view, pushToHistory = true) {
         document.getElementById('mainNav').classList.remove('active-mobile');
         document.querySelectorAll(".nav-link").forEach(el => el.classList.remove("active"));
+        
+        // Match nav based on index/order or data attribute. Simplified here:
         const links = document.querySelectorAll(".nav-link");
         if (view === 'home') links[0].classList.add("active");
         if (view === 'archive') links[1].classList.add("active");
         if (view === 'admin') links[2].classList.add("active");
 
         document.querySelectorAll(".content-container").forEach(el => el.classList.remove("active-view"));
-        if(view === 'single') document.getElementById('view-single').classList.add('active-view');
-        else if (view === 'admin') {
-            document.getElementById('view-admin').classList.add('active-view');
-        }
-        else if (view === 'archive') document.getElementById('view-archive').classList.add('active-view');
-        else document.getElementById('view-home').classList.add('active-view');
+        
+        let activeEl;
+        if(view === 'single') activeEl = document.getElementById('view-single');
+        else if (view === 'admin') activeEl = document.getElementById('view-admin');
+        else if (view === 'archive') activeEl = document.getElementById('view-archive');
+        else activeEl = document.getElementById('view-home');
+        
+        activeEl.classList.add('active-view');
         document.getElementById("rightPane").scrollTop = 0;
+
+        // Manage History
+        if(pushToHistory) {
+            history.pushState({ view: view }, "", "#" + view);
+        }
       }
 
       function unlockAdmin() {
@@ -578,7 +605,7 @@ const html = `
           } else { alert("Passkey required."); }
       }
 
-      function openPost(id) {
+      function openPost(id, pushToHistory = true) {
         const p = allPosts.find(x => x.id === id);
         if(!p) return;
         document.getElementById('single-post-content').innerHTML = \`
@@ -586,7 +613,13 @@ const html = `
             <h1 class="article-title">\${p.title}</h1>
             <div class="article-body"><p>\${p.content}</p></div>
         \`;
-        switchView('single');
+        
+        // Push ID to history so back button re-opens this specific post
+        if(pushToHistory) {
+             history.pushState({ view: 'single', postId: id }, "", "#post-" + id);
+        }
+        
+        switchView('single', false); // Don't push generic view state, we pushed specific ID state above
       }
 
       function resetForm() {
@@ -641,8 +674,16 @@ const html = `
         } catch (e) { alert("Error"); }
       }
 
-      fetchData();
-    </script>
-  </body>
-</html>
-`;
+      // Initial State Check
+      window.onload = () => {
+         fetchData();
+         // Handle direct link with hash
+         if(window.location.hash) {
+             const h = window.location.hash;
+             if(h.startsWith('#post-')) {
+                 // Wait for fetch, then open? openPost requires data. 
+                 // Simple approach: data load handles rendering. 
+             } else {
+                 const v = h.replace('#', '');
+                 switchView(v, false);
+             }
