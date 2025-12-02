@@ -145,32 +145,52 @@ const html = `
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Exceed Mission Log.">
     <title>EXXEED | The Mission Log</title>
-    
+
+     <script>
+    // Immediate route initialization - runs before page renders
+    (function() {
+      const hash = window.location.hash;
+      let targetView = 'home';
+      
+      if(hash.startsWith('#post-')) {
+        targetView = 'single';
+      } else if(hash) {
+        const view = hash.replace('#', '');
+        if(['archive', 'admin', 'single'].includes(view)) {
+          targetView = view;
+          }
+        }
+        
+          // Store in sessionStorage so we can read it when DOM loads
+          sessionStorage.setItem('initialView', targetView);
+        })();
+      </script>
+      
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
     
     <!-- Open Graph / Twitter Meta Tags -->
-<meta property="og:title" content="EXXEED | The Mission Log">
-<meta property="og:description" content="Former PMA Cadet turned Full-Stack Developer. Building in public.">
-<meta property="og:image" content="https://i.imgur.com/3x1dKUX.jpeg">
-<meta property="og:url" content="https://your-domain.com">
-<meta property="og:type" content="website">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="EXXEED | The Mission Log">
-<meta name="twitter:description" content="Former PMA Cadet turned Full-Stack Developer. Building in public.">
-<meta name="twitter:image" content="https://i.imgur.com/3x1dKUX.jpeg">
+    <meta property="og:title" content="EXXEED | The Mission Log">
+    <meta property="og:description" content="Former PMA Cadet turned Full-Stack Developer. Building in public.">
+    <meta property="og:image" content="https://i.imgur.com/3x1dKUX.jpeg">
+    <meta property="og:url" content="https://your-domain.com">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="EXXEED | The Mission Log">
+    <meta name="twitter:description" content="Former PMA Cadet turned Full-Stack Developer. Building in public.">
+    <meta name="twitter:image" content="https://i.imgur.com/3x1dKUX.jpeg">
 
-<!-- Fonts -->
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=JetBrains+Mono:wght@400;700&family=Manrope:wght@300;400;700&family=Major+Mono+Display&display=swap" rel="stylesheet" />
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=JetBrains+Mono:wght@400;700&family=Manrope:wght@300;400;700&family=Major+Mono+Display&display=swap" rel="stylesheet" />
 
-<!-- Custom Favicon -->
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cstyle%3E text %7B font-family: monospace; font-weight: bold; fill: %23ff3333; font-size: 80px; %7D %3C/style%3E%3Ctext x='50' y='75' text-anchor='middle'%3EX%3C/text%3E%3C/svg%3E">
+    <!-- Custom Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cstyle%3E text %7B font-family: monospace; font-weight: bold; fill: %23ff3333; font-size: 80px; %7D %3C/style%3E%3Ctext x='50' y='75' text-anchor='middle'%3EX%3C/text%3E%3C/svg%3E">
 
-<!-- markdown compatibility -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js" defer></script> 
+    <!-- markdown compatibility -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js" defer></script> 
 
-<style>
+    <style>
   /* --- THEME --- */
   :root {
     --bg-main: #e0e0e0; --bg-panel: #888888;
@@ -510,7 +530,7 @@ const html = `
 <main class="right-pane" id="rightPane">
   
   <!-- VIEW 1: HOME -->
-  <div id="view-home" class="content-container active-view" role="tabpanel">
+  <div id="view-home" class="content-container" role="tabpanel">
     <span class="meta-tag">MISSION LOG // LATEST</span>
     <h1 class="article-title">The Journey <br />So Far.</h1>
     <div id="home-posts" style="margin-top: 4rem;">Loading...</div>
@@ -597,6 +617,20 @@ const html = `
 </main>
 
 <script>
+(function() {
+    const targetView = sessionStorage.getItem('initialView') || 'home';
+    const viewEl = document.getElementById('view-' + targetView);
+    if(viewEl) {
+      viewEl.classList.add('active-view');
+    }
+    
+    // Update nav
+    const navLinks = document.querySelectorAll(".nav-link");
+    if(targetView === 'home' && navLinks[0]) navLinks[0].classList.add("active");
+    else if(targetView === 'archive' && navLinks[1]) navLinks[1].classList.add("active");
+    else if(targetView === 'admin' && navLinks[2]) navLinks[2].classList.add("active");
+  })();
+  
   let allPosts = [];
   let timelineData = []; 
   let defaults = { archive: 5, admin: 5, timeline: 2 };
