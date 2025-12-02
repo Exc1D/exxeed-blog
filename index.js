@@ -108,20 +108,30 @@ export default {
 };
 
 const serviceWorker = `
-const CACHE = 'exxeed-v1';
+const CACHE = 'exxeed-v2';
 self.addEventListener('install', e => {
+  self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(cache => 
     cache.addAll(['/', '/api/timeline'])
   ));
 });
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys => 
+    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+  ));
+});
 self.addEventListener('fetch', e => {
+  if(e.request.url.includes('/api/posts')) {
+    e.respondWith(fetch(e.request));
+    return;
+  }
   e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+    fetch(e.request).then(res => {
       return caches.open(CACHE).then(cache => {
         cache.put(e.request, res.clone());
         return res;
       });
-    }))
+    }).catch(() => caches.match(e.request))
   );
 });
 `;
@@ -927,8 +937,12 @@ const html = `
       if(res.status === 200 || res.status === 201) {
           showToast("ENTRY SAVED SUCCESSFULLY", "success");
           resetForm();
+          if('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({type: 'CLEAR_CACHE'});
+          }
           await fetchData();
-          if(method === 'POST') switchView('home'); 
+          if(method === 'POST') switchView('home');
+          else renderList('admin');
       } else if(res.status === 401) {
           showToast("AUTH FAILED - INVALID PASSKEY", "error");
       } else if(res.status === 400) {
@@ -958,18 +972,21 @@ const html = `
   window.addEventListener('scroll', lazyLoad);
   lazyLoad();
 
-  window.onload = () => {
-     fetchData();
-     if(window.location.hash) {
-         const h = window.location.hash;
-         if(h.startsWith('#post-')) {
-             // handled after fetch
-         } else {
-             const v = h.replace('#', '');
-             switchView(v, false);
-         }
-     }
-  };
+  async function initApp() {
+    await fetchData();
+    const h = window.location.hash;
+    if(h) {
+      if(h.startsWith('#post-')) {
+        const postId = h.replace('#post-', '');
+        setTimeout(() => openPost(postId, false), 100);
+      } else {
+        const v = h.replace('#', '');
+        switchView(v, false);
+      }
+    }
+  }
+
+  window.onload = initApp;
 </script>
 
   
