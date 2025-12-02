@@ -1,11 +1,10 @@
 /**
- * EXXEED BLOG SYSTEM V5
- * Features: Dynamic Timeline, Pagination, Stealth Theme, Mobile Nav
+ * EXXEED BLOG SYSTEM V7
+ * Features: Avatar Integration, Admin Gate, Custom Logo, Timeline
  */
 
 // --- 1. CONFIGURATION & DATA ---
 
-// Edit this list to change your "About" section timeline
 const TIMELINE_DATA = [
   {
     year: "2025 - PRESENT",
@@ -22,7 +21,6 @@ const TIMELINE_DATA = [
     title: "The Spark",
     desc: "Realized that code is the ultimate weapon for creation.",
   },
-  // To add more, copy the format above and paste here...
 ];
 
 const DEFAULT_POSTS = [
@@ -134,7 +132,8 @@ const html = `
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Exceed Mission Log.">
     <title>EXXEED | The Mission Log</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=JetBrains+Mono:wght@400;700&family=Manrope:wght@300;400;700&display=swap" rel="stylesheet" />
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=JetBrains+Mono:wght@400;700&family=Manrope:wght@300;400;700&family=Major+Mono+Display&display=swap" rel="stylesheet" />
     
     <style>
       /* --- THEME --- */
@@ -144,6 +143,7 @@ const html = `
         --accent: #ff3333; --border: #222222;
         --input-bg: rgba(255,255,255,0.1);
         --card-hover: rgba(0,0,0,0.05);
+        --logo-x: #00f0ff; 
       }
       [data-theme="dark"] {
         --bg-main: #222222; --bg-panel: #282828;
@@ -201,11 +201,15 @@ const html = `
       .theme-switch:hover { opacity: 1; transform: rotate(15deg); }
       .theme-switch svg { width: 24px; height: 24px; fill: currentColor; }
 
-      /* --- CONTENT --- */
+      /* --- BRANDING --- */
       .brand-vertical {
         font-family: "Cinzel", serif; font-size: 8rem; line-height: 0.8; color: #fff; opacity: 0.08;
         position: absolute; bottom: -2rem; left: -1rem; z-index: 0; pointer-events: none;
         writing-mode: vertical-rl; transform: rotate(180deg);
+      }
+      .brand-x {
+        font-family: "Major Mono Display", monospace; color: var(--logo-x);
+        font-size: 1.2em; font-weight: bold; display: inline-block; transform: translateY(2px);
       }
       .mission-stat { font-family: "JetBrains Mono", monospace; border-left: 2px solid var(--accent); padding-left: 1rem; margin-bottom: 2rem; }
       .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
@@ -218,48 +222,38 @@ const html = `
       h1.article-title { font-family: "Cinzel", serif; font-size: 4rem; line-height: 1.1; margin-bottom: 2rem; }
       .meta-tag { font-family: "JetBrains Mono"; font-size: 0.8rem; color: var(--accent); border: 1px solid var(--accent); padding: 4px 12px; display: inline-block; margin-bottom: 2rem; }
 
-      /* --- TIMELINE (RESTORED DESIGN) --- */
+      /* --- DOSSIER & AVATAR --- */
       .dossier-section { margin-top: 6rem; padding-top: 4rem; border-top: 2px solid var(--border); }
       
-      .timeline-container { position: relative; }
-      
-      .timeline-item {
-        border-left: 1px solid var(--border); /* The line */
-        padding-left: 2rem;
-        padding-bottom: 3rem;
-        position: relative;
-        transition: opacity 0.3s;
+      .dossier-grid {
+        display: flex; gap: 3rem; align-items: flex-start; margin-bottom: 3rem;
       }
-      /* The Dot */
-      .timeline-item::before {
-        content: "";
-        position: absolute;
-        left: -5px; /* Centers dot on 1px border */
-        top: 5px;
-        width: 9px;
-        height: 9px;
-        background: var(--bg-main);
-        border: 2px solid var(--accent);
+      .dossier-avatar {
+        width: 150px; height: 150px;
         border-radius: 50%;
-        transition: background 0.3s, box-shadow 0.3s;
+        border: 2px solid var(--accent);
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        object-fit: cover;
+        flex-shrink: 0;
+        transition: all 0.3s ease;
       }
-      .timeline-item:hover::before {
-        background: var(--accent);
-        box-shadow: 0 0 10px var(--accent);
+      [data-theme="dark"] .dossier-avatar {
+          box-shadow: 0 0 20px rgba(0, 240, 255, 0.3); /* Cyan Glow in Dark Mode */
       }
-      .timeline-year {
-        font-family: "JetBrains Mono";
-        color: var(--accent);
-        margin-bottom: 0.5rem;
-        display: block;
-        font-weight: bold;
+      .dossier-avatar:hover { transform: scale(1.05); }
+      
+      .timeline-container { position: relative; }
+      .timeline-item {
+        border-left: 1px solid var(--border); padding-left: 2rem; padding-bottom: 3rem; position: relative; transition: opacity 0.3s;
       }
-      .timeline-title {
-        font-size: 1.5rem; margin-bottom: 0.5rem; font-family: "Manrope"; font-weight: 700;
+      .timeline-item::before {
+        content: ""; position: absolute; left: -5px; top: 5px; width: 9px; height: 9px; background: var(--bg-main);
+        border: 2px solid var(--accent); border-radius: 50%; transition: background 0.3s, box-shadow 0.3s;
       }
-      .timeline-desc {
-        color: var(--text-muted); font-size: 1.1rem; line-height: 1.6;
-      }
+      .timeline-item:hover::before { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+      .timeline-year { font-family: "JetBrains Mono"; color: var(--accent); margin-bottom: 0.5rem; display: block; font-weight: bold; }
+      .timeline-title { font-size: 1.5rem; margin-bottom: 0.5rem; font-family: "Manrope"; font-weight: 700; }
+      .timeline-desc { color: var(--text-muted); font-size: 1.1rem; line-height: 1.6; }
 
       /* --- POSTS --- */
       .post-item { 
@@ -280,7 +274,17 @@ const html = `
       }
       .see-more-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); }
 
-      /* Search & Admin */
+      /* --- ADMIN --- */
+      .admin-gate { text-align: center; padding: 4rem 0; }
+      .admin-gate input {
+          width: 60%; max-width: 300px; padding: 1rem; background: var(--input-bg);
+          border: 1px solid var(--border); color: var(--text-main); font-family: "JetBrains Mono";
+          margin-bottom: 1rem; outline: none; text-align: center;
+      }
+      .admin-gate input:focus { border-color: var(--accent); }
+      .admin-panel { display: none; }
+      .admin-panel.unlocked { display: block; }
+
       .search-wrapper { position: relative; margin-bottom: 2rem; }
       .search-input {
         width: 100%; background: var(--input-bg); border: 1px solid var(--border); color: var(--text-main);
@@ -303,15 +307,16 @@ const html = `
       }
       .admin-list-item:hover { transform: scale(1.01); border-color: var(--accent); }
 
-      /* --- RESPONSIVE --- */
       @media (max-width: 900px) {
         body { flex-direction: column; overflow-y: auto; height: auto; }
         .left-pane { width: 100%; padding: 2rem; border-bottom: 1px solid var(--border); height: auto; }
         .right-pane { width: 100%; overflow: visible; }
         .content-container { padding: 4rem 2rem; }
         .brand-vertical { display: none; }
-        
         .mobile-toggle { display: block; }
+        
+        .dossier-grid { flex-direction: column; align-items: center; text-align: center; }
+        
         .nav-dock { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             flex-direction: column; justify-content: center; background: rgba(0,0,0,0.95);
@@ -344,11 +349,11 @@ const html = `
 
     <aside class="left-pane">
         <div style="margin-top: auto;">
-            <div class="mission-stat"><div class="stat-label">OPERATOR</div><div class="stat-val">EXXEED</div></div>
+            <div class="mission-stat"><div class="stat-label">OPERATOR</div><div class="stat-val">EX<span class="brand-x">X</span>EED</div></div>
             <div class="mission-stat"><div class="stat-label">CURRENT OBJ</div><div class="stat-val">BUILD IN PUBLIC</div></div>
             <div class="mission-stat"><div class="stat-label">STATUS</div><div class="stat-val" style="color: #4caf50;">ONLINE</div></div>
         </div>
-        <div class="brand-vertical">EXXEED</div>
+        <div class="brand-vertical">EX<span class="brand-x">X</span>EED</div>
     </aside>
 
     <main class="right-pane" id="rightPane">
@@ -361,15 +366,21 @@ const html = `
         
         <div class="dossier-section">
             <h2 class="article-title" style="font-size: 2.5rem;">About EXXEED</h2>
-            <p style="font-size: 1.2rem; line-height: 1.6; margin-bottom: 3rem; color: var(--text-muted);">
-              Former PMA Cadet turned Full-Stack Developer. I traded a rifle for a keyboard, but kept the discipline.
-            </p>
             
-            <!-- Dynamic Timeline -->
-            <div id="timeline-container" class="timeline-container">
-                <!-- Timeline items injected via JS -->
+            <!-- NEW: Avatar + Description Grid -->
+            <div class="dossier-grid">
+                 <!-- PASTE YOUR IMAGE LINK HERE IN 'src' -->
+                 <img src="PASTE_YOUR_IMAGE_URL_HERE" class="dossier-avatar" alt="Operator Avatar" onerror="this.src='https://via.placeholder.com/150/ff3333/000000?text=EXXEED'">
+                 
+                 <div>
+                    <p style="font-size: 1.2rem; line-height: 1.6; color: var(--text-muted);">
+                      Former PMA Cadet turned Full-Stack Developer. I traded a rifle for a keyboard, but kept the discipline.
+                    </p>
+                 </div>
             </div>
-            <button id="timeline-more" class="see-more-btn" style="display:none" onclick="loadMoreTimeline()">See More Experience [ + ]</button>
+
+            <div id="timeline-container" class="timeline-container"></div>
+            <button id="timeline-btn" class="see-more-btn" style="display:none" onclick="toggleLimit('timeline')">See More Experience [ + ]</button>
         </div>
       </div>
 
@@ -382,7 +393,7 @@ const html = `
              <input type="text" class="search-input" placeholder="Search parameters..." onkeyup="filterList(this.value, 'archive')">
         </div>
         <div id="archive-posts"></div>
-        <button id="archive-more" class="see-more-btn" style="display:none" onclick="loadMore('archive')">See More [ + ]</button>
+        <button id="archive-btn" class="see-more-btn" style="display:none" onclick="toggleLimit('archive')">See More [ + ]</button>
       </div>
 
       <!-- VIEW 3: SINGLE -->
@@ -394,31 +405,39 @@ const html = `
       <!-- VIEW 4: ADMIN -->
       <div id="view-admin" class="content-container">
         <span class="meta-tag">RESTRICTED ACCESS</span>
-        <h1 class="article-title" id="admin-header">New Entry</h1>
+        <h1 class="article-title" id="admin-header">Admin Link</h1>
         
-        <div class="admin-form">
-            <input type="hidden" id="post-id"> 
-            <input type="password" id="admin-pass" placeholder="Enter Access Code">
-            <input type="text" id="post-title" placeholder="Mission Title">
-            <div style="display: flex; gap: 1rem;">
-                <input type="text" id="post-tag" placeholder="ID (LOG_005)" style="flex:1">
-                <input type="text" id="post-date" placeholder="Date (DEC 05)" style="flex:1">
-            </div>
-            <input type="text" id="post-teaser" placeholder="Teaser">
-            <textarea id="post-content" placeholder="Content (HTML Allowed)"></textarea>
-            
-            <button class="btn" onclick="submitPost()" id="submit-btn">Submit Log</button>
-            <button class="btn" style="background:#555; color:#fff;" onclick="resetForm()">Clear</button>
+        <div id="admin-gate" class="admin-gate">
+            <p style="font-family:'JetBrains Mono'; margin-bottom:1rem; color:var(--text-muted);">ENCRYPTED CONNECTION REQUIRED</p>
+            <input type="password" id="gate-pass" placeholder="Enter Passkey">
+            <br>
+            <button class="btn" onclick="unlockAdmin()">Authenticate</button>
         </div>
 
-        <div style="margin-top: 4rem; border-top: 1px solid var(--border); padding-top: 2rem;">
-            <h3 style="font-family: 'Cinzel'; margin-bottom: 1rem;">Manage Logs</h3>
-            <div class="search-wrapper">
-                 <span class="search-icon">></span>
-                 <input type="text" class="search-input" placeholder="Search database..." onkeyup="filterList(this.value, 'admin')">
+        <div id="admin-panel" class="admin-panel">
+            <div class="admin-form">
+                <input type="hidden" id="post-id"> 
+                <input type="password" id="admin-pass" placeholder="Access Code Confirm" style="display:none;">
+                <input type="text" id="post-title" placeholder="Mission Title">
+                <div style="display: flex; gap: 1rem;">
+                    <input type="text" id="post-tag" placeholder="ID (LOG_005)" style="flex:1">
+                    <input type="text" id="post-date" placeholder="Date (DEC 05)" style="flex:1">
+                </div>
+                <input type="text" id="post-teaser" placeholder="Teaser">
+                <textarea id="post-content" placeholder="Content (HTML Allowed)"></textarea>
+                <button class="btn" onclick="submitPost()" id="submit-btn">Submit Log</button>
+                <button class="btn" style="background:#555; color:#fff;" onclick="resetForm()">Clear</button>
             </div>
-            <div id="admin-post-list"></div>
-            <button id="admin-more" class="see-more-btn" style="display:none" onclick="loadMore('admin')">See More [ + ]</button>
+
+            <div style="margin-top: 4rem; border-top: 1px solid var(--border); padding-top: 2rem;">
+                <h3 style="font-family: 'Cinzel'; margin-bottom: 1rem;">Manage Logs</h3>
+                <div class="search-wrapper">
+                    <span class="search-icon">></span>
+                    <input type="text" class="search-input" placeholder="Search database..." onkeyup="filterList(this.value, 'admin')">
+                </div>
+                <div id="admin-post-list"></div>
+                <button id="admin-btn" class="see-more-btn" style="display:none" onclick="toggleLimit('admin')">See More [ + ]</button>
+            </div>
         </div>
       </div>
 
@@ -426,12 +445,11 @@ const html = `
 
     <script>
       let allPosts = [];
-      let timelineData = []; // Will be fetched from internal API or uses default
-      let limits = { archive: 5, admin: 5, timeline: 2 }; // Start timeline with 2 items
-      
+      let timelineData = []; 
+      let defaults = { archive: 5, admin: 5, timeline: 2 };
+      let limits = { ...defaults };
       let filteredPosts = [];
 
-      // --- THEME ---
       function initTheme() {
         const s = localStorage.getItem('theme');
         if(s === 'dark' || (!s && window.matchMedia('(prefers-color-scheme: dark)').matches)) 
@@ -446,72 +464,53 @@ const html = `
 
       function toggleMobileNav() { document.getElementById('mainNav').classList.toggle('active-mobile'); }
 
-      // --- DATA FETCH ---
       async function fetchData() {
         try {
-          // Get Posts
           const resPosts = await fetch('/api/posts');
           allPosts = await resPosts.json();
           filteredPosts = [...allPosts];
-          
-          // Get Timeline
           const resTime = await fetch('/api/timeline');
           timelineData = await resTime.json();
-
           renderViews();
         } catch (e) { console.error("Error", e); }
       }
 
-      // --- RENDERING ---
       function renderViews() {
-        // 1. Home Posts (Top 3)
         const homeDiv = document.getElementById('home-posts');
         homeDiv.innerHTML = '';
         allPosts.slice(0, 3).forEach(p => homeDiv.appendChild(createPostHTML(p)));
-
-        // 2. Timeline
         renderTimeline();
-
-        // 3. Lists
         renderList('archive');
         renderList('admin');
       }
 
       function renderTimeline() {
         const container = document.getElementById('timeline-container');
-        const btn = document.getElementById('timeline-more');
+        const btn = document.getElementById('timeline-btn');
         container.innerHTML = '';
         
         const visible = timelineData.slice(0, limits.timeline);
-        
         visible.forEach(item => {
             const div = document.createElement('div');
             div.className = 'timeline-item';
-            div.innerHTML = \`
-                <span class="timeline-year">\${item.year}</span>
-                <h3 class="timeline-title">\${item.title}</h3>
-                <p class="timeline-desc">\${item.desc}</p>
-            \`;
+            div.innerHTML = \`<span class="timeline-year">\${item.year}</span><h3 class="timeline-title">\${item.title}</h3><p class="timeline-desc">\${item.desc}</p>\`;
             container.appendChild(div);
         });
 
-        if(timelineData.length > limits.timeline) btn.style.display = 'block';
-        else btn.style.display = 'none';
-      }
+        if (limits.timeline > defaults.timeline) btn.innerText = "See Less [ - ]";
+        else btn.innerText = "See More Experience [ + ]";
 
-      function loadMoreTimeline() {
-        limits.timeline += 5; // Show 5 more
-        renderTimeline();
+        if(timelineData.length > defaults.timeline) btn.style.display = 'block';
+        else btn.style.display = 'none';
       }
 
       function renderList(type) {
          const container = document.getElementById(type === 'archive' ? 'archive-posts' : 'admin-post-list');
-         const btn = document.getElementById(type === 'archive' ? 'archive-more' : 'admin-more');
+         const btn = document.getElementById(type === 'archive' ? 'archive-btn' : 'admin-btn');
          container.innerHTML = '';
          
          const limit = limits[type];
          const visible = filteredPosts.slice(0, limit);
-         
          visible.forEach(p => {
             if(type === 'archive') container.appendChild(createPostHTML(p));
             else {
@@ -522,21 +521,24 @@ const html = `
             }
          });
 
-         if(filteredPosts.length > limit) btn.style.display = 'block';
+         if (limits[type] > defaults[type]) btn.innerText = "See Less [ - ]";
+         else btn.innerText = "See More [ + ]";
+
+         if(filteredPosts.length > defaults[type]) btn.style.display = 'block';
          else btn.style.display = 'none';
       }
 
-      function loadMore(type) {
-         limits[type] += 5;
-         renderList(type);
+      function toggleLimit(type) {
+        if(limits[type] > defaults[type]) limits[type] = defaults[type];
+        else limits[type] += 5;
+        if(type === 'timeline') renderTimeline();
+        else renderList(type);
       }
 
       function filterList(query, type) {
          const q = query.toLowerCase();
-         filteredPosts = allPosts.filter(p => 
-            p.title.toLowerCase().includes(q) || p.tag.toLowerCase().includes(q)
-         );
-         limits[type] = 5; 
+         filteredPosts = allPosts.filter(p => p.title.toLowerCase().includes(q) || p.tag.toLowerCase().includes(q));
+         limits[type] = defaults[type];
          renderList(type);
       }
 
@@ -544,11 +546,7 @@ const html = `
         const div = document.createElement('div');
         div.className = 'post-item';
         div.onclick = () => openPost(post.id);
-        div.innerHTML = \`
-            <div class="post-meta"><span class="post-tag">\${post.tag}</span><span class="post-date">\${post.date}</span></div>
-            <h2 class="post-title">\${post.title}</h2>
-            <p class="post-teaser">\${post.teaser}</p>
-        \`;
+        div.innerHTML = \`<div class="post-meta"><span class="post-tag">\${post.tag}</span><span class="post-date">\${post.date}</span></div><h2 class="post-title">\${post.title}</h2><p class="post-teaser">\${post.teaser}</p>\`;
         return div;
       }
 
@@ -562,11 +560,22 @@ const html = `
 
         document.querySelectorAll(".content-container").forEach(el => el.classList.remove("active-view"));
         if(view === 'single') document.getElementById('view-single').classList.add('active-view');
-        else if (view === 'admin') document.getElementById('view-admin').classList.add('active-view');
+        else if (view === 'admin') {
+            document.getElementById('view-admin').classList.add('active-view');
+        }
         else if (view === 'archive') document.getElementById('view-archive').classList.add('active-view');
         else document.getElementById('view-home').classList.add('active-view');
-
         document.getElementById("rightPane").scrollTop = 0;
+      }
+
+      function unlockAdmin() {
+          const pass = document.getElementById('gate-pass').value;
+          if(pass) {
+              document.getElementById('admin-gate').style.display = 'none';
+              document.getElementById('admin-panel').classList.add('unlocked');
+              document.getElementById('admin-header').innerText = "Dashboard";
+              document.getElementById('admin-pass').value = pass;
+          } else { alert("Passkey required."); }
       }
 
       function openPost(id) {
@@ -580,7 +589,6 @@ const html = `
         switchView('single');
       }
 
-      // --- ADMIN ---
       function resetForm() {
         document.getElementById('post-id').value = '';
         document.getElementById('post-title').value = '';
@@ -588,7 +596,6 @@ const html = `
         document.getElementById('post-date').value = '';
         document.getElementById('post-teaser').value = '';
         document.getElementById('post-content').value = '';
-        document.getElementById('admin-header').innerText = "New Entry";
         document.getElementById('submit-btn').innerText = "Submit Log";
       }
 
@@ -601,7 +608,6 @@ const html = `
         document.getElementById('post-date').value = p.date;
         document.getElementById('post-teaser').value = p.teaser;
         document.getElementById('post-content').value = p.content;
-        document.getElementById('admin-header').innerText = "Edit: " + p.tag;
         document.getElementById('submit-btn').innerText = "Update";
         document.getElementById("rightPane").scrollTop = 0;
       }
@@ -615,7 +621,8 @@ const html = `
         const teaser = document.getElementById('post-teaser').value;
         const content = document.getElementById('post-content').value;
 
-        if(!pass || !title) { alert("Missing Data"); return; }
+        if(!pass) { alert("Session Expired. Please reload."); return; }
+        if(!title) { alert("Missing Data"); return; }
         const method = id ? 'PUT' : 'POST';
         const payload = { id: id || Date.now().toString(), title, tag, date, teaser, content };
 
@@ -630,7 +637,7 @@ const html = `
                 resetForm();
                 await fetchData();
                 if(method === 'POST') switchView('home'); 
-            } else { alert("Auth Failed"); }
+            } else { alert("Auth Failed: Incorrect Password"); }
         } catch (e) { alert("Error"); }
       }
 
