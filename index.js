@@ -33,6 +33,39 @@ export default {
       });
     }
 
+    // ROBOTS.TXT
+    if (url.pathname === "/robots.txt") {
+      return new Response(
+        `User-agent: *\nAllow: /\nSitemap: ${url.origin}/sitemap.xml`,
+        {
+          headers: { "Content-Type": "text/plain" },
+        }
+      );
+    }
+
+    // SITEMAP.XML
+    if (url.pathname === "/sitemap.xml") {
+      const posts = (await env.BLOG_KV.get("posts", { type: "json" })) || [];
+      const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>${
+    url.origin
+  }/</loc><priority>1.0</priority><changefreq>daily</changefreq></url>
+  <url><loc>${
+    url.origin
+  }/#archive</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
+${posts
+  .map(
+    (p) =>
+      `  <url><loc>${url.origin}/post/${p.id}</loc><priority>0.9</priority><changefreq>weekly</changefreq></url>`
+  )
+  .join("\n")}
+</urlset>`;
+      return new Response(sitemap, {
+        headers: { "Content-Type": "application/xml" },
+      });
+    }
+
     // API: GET POSTS
     if (url.pathname === "/api/posts" && request.method === "GET") {
       const posts = (await env.BLOG_KV.get("posts", { type: "json" })) || [];
@@ -95,6 +128,34 @@ export default {
       }
     }
 
+    // DYNAMIC POSTS
+    const postMatch = url.pathname.match(/^\/post\/([a-zA-Z0-9-]+)/);
+    if (postMatch) {
+      const postId = postMatch[1];
+      const posts = (await env.BLOG_KV.get("posts", { type: "json" })) || [];
+      const post = posts.find((p) => p.id === postId);
+
+      if (post) {
+        const postHtml = html
+          .replace(
+            /<title>.*<\/title>/,
+            `<title>${post.title} | EXXEED</title>`
+          )
+          .replace(
+            /<meta name="description" content=".*">/,
+            `<meta name="description" content="${post.teaser}">`
+          );
+        return new Response(postHtml, {
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "X-Frame-Options": "DENY",
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "public, max-age=300",
+          },
+        });
+      }
+    }
+
     // SERVE HTML
     return new Response(html, {
       headers: {
@@ -143,28 +204,12 @@ const html = `
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Exceed Mission Log.">
+    <meta name="description" content="Upcoming Full-Stack Developer, based from the Philippines. A student of the Odin Project and Scrimba.">
+    <meta name="keywords" content="full-stack developer, web development, Odin Project, Scrimba, Philippines, coding blog, developer portfolio">
+    <meta name="author" content="EXXEED">
+    <link rel="canonical" href="https://your-domain.com/">
     <title>EXXEED | The Mission Log</title>
 
-     <script>
-    // Immediate route initialization - runs before page renders
-    (function() {
-      const hash = window.location.hash;
-      let targetView = 'home';
-      
-      if(hash.startsWith('#post-')) {
-        targetView = 'single';
-      } else if(hash) {
-        const view = hash.replace('#', '');
-        if(['archive', 'admin', 'single'].includes(view)) {
-          targetView = view;
-          }
-        }
-        
-          // Store in sessionStorage so we can read it when DOM loads
-          sessionStorage.setItem('initialView', targetView);
-        })();
-      </script>
       
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -174,7 +219,8 @@ const html = `
     <meta property="og:title" content="EXXEED | The Mission Log">
     <meta property="og:description" content="Former PMA Cadet turned Full-Stack Developer. Building in public.">
     <meta property="og:image" content="https://i.imgur.com/3x1dKUX.jpeg">
-    <meta property="og:url" content="https://your-domain.com">
+    <meta property="og:url" content="https://your-domain.com/">
+    <meta property="og:site_name" content="EXXEED">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="EXXEED | The Mission Log">
@@ -186,6 +232,20 @@ const html = `
 
     <!-- Custom Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cstyle%3E text %7B font-family: monospace; font-weight: bold; fill: %23ff3333; font-size: 80px; %7D %3C/style%3E%3Ctext x='50' y='75' text-anchor='middle'%3EX%3C/text%3E%3C/svg%3E">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": "EXXEED",
+      "url": "https://your-domain.com",
+      "jobTitle": "Full-Stack Developer",
+      "description": "Former PMA Cadet turned Full-Stack Developer. Building in public.",
+      "image": "https://i.imgur.com/3x1dKUX.jpeg",
+      "sameAs": []
+    }
+    </script>
 
     <!-- markdown compatibility -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js" defer></script> 
@@ -617,18 +677,28 @@ const html = `
 </main>
 
 <script>
-(function() {
-    const targetView = sessionStorage.getItem('initialView') || 'home';
+  (function() {
+    const path = window.location.pathname;
+    let targetView = 'home';
+
+    if (path.startsWith('/post/')) {
+      targetView = 'single';
+    } else if (path.startsWith('/archive')) {
+      targetView = 'archive';
+    } else if (path.startsWith('/admin')) {
+      targetView = 'admin';
+    }
+
     const viewEl = document.getElementById('view-' + targetView);
-    if(viewEl) {
+    if (viewEl) {
       viewEl.classList.add('active-view');
     }
-    
+
     // Update nav
     const navLinks = document.querySelectorAll(".nav-link");
-    if(targetView === 'home' && navLinks[0]) navLinks[0].classList.add("active");
-    else if(targetView === 'archive' && navLinks[1]) navLinks[1].classList.add("active");
-    else if(targetView === 'admin' && navLinks[2]) navLinks[2].classList.add("active");
+    if (targetView === 'home' && navLinks[0]) navLinks[0].classList.add("active");
+    else if (targetView === 'archive' && navLinks[1]) navLinks[1].classList.add("active");
+    else if (targetView === 'admin' && navLinks[2]) navLinks[2].classList.add("active");
   })();
   
   let allPosts = [];
@@ -670,14 +740,14 @@ const html = `
 
   // --- HISTORY & A11Y ---
   window.addEventListener('popstate', (event) => {
-    if(event.state) {
-        if(event.state.view === 'single' && event.state.postId) {
-            openPost(event.state.postId, false);
-        } else {
-            switchView(event.state.view || 'home', false);
-        }
+    if (event.state) {
+      if (event.state.view === 'single' && event.state.postId) {
+        openPost(event.state.postId, false);
+      } else {
+        switchView(event.state.view || 'home', false);
+      }
     } else {
-        switchView('home', false);
+      switchView('home', false);
     }
   });
 
@@ -816,8 +886,8 @@ const html = `
     activeEl.classList.add('active-view');
     document.getElementById("rightPane").scrollTop = 0;
 
-    if(pushToHistory) {
-        history.pushState({ view: view }, "", "#" + view);
+    if (pushToHistory) {
+      history.pushState({ view: view }, "", view === 'home' ? '/' : '/' + view);
     }
   }
 
@@ -843,8 +913,8 @@ const html = `
         <h1 class="article-title">\${p.title}</h1>
         <div class="article-body">\${marked.parse(p.content)}</div>
     \`;
-    if(pushToHistory) {
-         history.pushState({ view: 'single', postId: id }, "", "#post-" + id);
+    if (pushToHistory) {
+      history.pushState({ view: 'single', postId: id }, "", "/post/" + id);
     }
     switchView('single', false);
   }
@@ -1008,15 +1078,16 @@ const html = `
 
   async function initApp() {
     await fetchData();
-    const h = window.location.hash;
-    if(h) {
-      if(h.startsWith('#post-')) {
-        const postId = h.replace('#post-', '');
-        setTimeout(() => openPost(postId, false), 100);
-      } else {
-        const v = h.replace('#', '');
-        switchView(v, false);
-      }
+    const path = window.location.pathname;
+    if (path.startsWith('/post/')) {
+      const postId = path.split('/')[2];
+      setTimeout(() => openPost(postId, false), 100);
+    } else if (path.startsWith('/archive')) {
+      switchView('archive', false);
+    } else if (path.startsWith('/admin')) {
+      switchView('admin', false);
+    } else {
+      switchView('home', false);
     }
   }
 
