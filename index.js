@@ -312,14 +312,8 @@ const html = `
     }
     </script>
 
-    <!-- markdown compatibility -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js" defer></script>
-    <!-- Syntax highlighting -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js" defer></script> 
+    <!-- markdown compatibility - load on demand -->
+    <!-- Syntax highlighting - load on demand --> 
 
     <style>
   /* --- THEME --- */
@@ -388,6 +382,37 @@ const html = `
   }
   @keyframes fadeOut {
       to { opacity: 0; transform: translateX(20px); }
+  }
+
+  /* --- HOURGLASS LOADER --- */
+  .hourglass-loader {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: var(--bg-main); z-index: 9999; display: flex; 
+    align-items: center; justify-content: center; flex-direction: column;
+    transition: opacity 0.5s, visibility 0.5s;
+  }
+  .hourglass-loader.hidden { opacity: 0; visibility: hidden; }
+  
+  .hourglass {
+    font-family: "Major Mono Display", monospace; font-size: 4rem; 
+    color: var(--accent); font-weight: bold; position: relative;
+    animation: hourglassRotate 2s ease-in-out infinite;
+  }
+  
+  @keyframes hourglassRotate {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(180deg); }
+  }
+  
+  .hourglass-text {
+    font-family: "JetBrains Mono", monospace; font-size: 0.9rem;
+    color: var(--text-muted); margin-top: 2rem; letter-spacing: 2px;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
   }
 
   /* --- LAYOUT --- */
@@ -653,6 +678,12 @@ const html = `
   </head>
   <body>
     <div class="noise-overlay"></div>
+    
+    <!-- Hourglass Loader -->
+    <div class="hourglass-loader" id="hourglassLoader">
+      <div class="hourglass">X</div>
+      <div class="hourglass-text">LOADING MISSION DATA...</div>
+    </div>
     
     <!-- Notification Container -->
 <div id="toast-container" role="status" aria-live="polite" aria-atomic="true"></div>
@@ -1061,9 +1092,13 @@ const html = `
       }
   }
 
-  function openPost(id, pushToHistory = true) {
+  async function openPost(id, pushToHistory = true) {
     const p = allPosts.find(x => x.id === id);
     if(!p) return;
+    
+    // Load libraries if needed
+    await loadMarked();
+    await loadPrism();
     
     const readTime = calculateReadingTime(p.content || '');
     const currentUrl = window.location.origin + '/post/' + id;
@@ -1255,24 +1290,66 @@ const html = `
     navigator.serviceWorker.register('/sw.js');
   }
 
-  // Lazy Load Images
-  const lazyLoad = () => {
-    document.querySelectorAll('img.lazy').forEach(img => {
-      if(img.getBoundingClientRect().top < window.innerHeight) {
-        img.src = img.dataset.src;
-        img.classList.remove('lazy');
-      }
+  // Lazy Load Images with IntersectionObserver
+  if('IntersectionObserver' in window) {
+    const imgObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if(entry.isIntersecting) {
+          const img = entry.target;
+          img.src = img.dataset.src;
+          img.classList.remove('lazy');
+          imgObserver.unobserve(img);
+        }
+      });
     });
-  };
-  window.addEventListener('scroll', lazyLoad);
-  lazyLoad();
+    
+    const observeImages = () => {
+      document.querySelectorAll('img.lazy').forEach(img => imgObserver.observe(img));
+    };
+    observeImages();
+  } else {
+    // Fallback for older browsers
+    document.querySelectorAll('img.lazy').forEach(img => {
+      img.src = img.dataset.src;
+      img.classList.remove('lazy');
+    });
+  }
+
+  // Lazy load external libraries
+  let markedLoaded = false;
+  let prismLoaded = false;
+
+  async function loadMarked() {
+    if(markedLoaded) return;
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js';
+      script.onload = () => { markedLoaded = true; resolve(); };
+      document.head.appendChild(script);
+    });
+  }
+
+  async function loadPrism() {
+    if(prismLoaded) return;
+    return new Promise((resolve) => {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css';
+      document.head.appendChild(link);
+      
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js';
+      script.onload = () => { prismLoaded = true; resolve(); };
+      document.head.appendChild(script);
+    });
+  }
 
   async function initApp() {
-    await fetchData();
     const path = window.location.pathname;
+    
+    // Show content immediately, fetch data in background
     if (path.startsWith('/post/')) {
-      const postId = path.split('/')[2];
-      setTimeout(() => openPost(postId, false), 100);
+      switchView('single', false);
     } else if (path.startsWith('/archive')) {
       switchView('archive', false);
     } else if (path.startsWith('/admin')) {
@@ -1280,9 +1357,28 @@ const html = `
     } else {
       switchView('home', false);
     }
+    
+    // Hide loader immediately
+    document.getElementById('hourglassLoader').classList.add('hidden');
+    
+    // Fetch data in background
+    await fetchData();
+    
+    // Handle post view after data loads
+    if (path.startsWith('/post/')) {
+      const postId = path.split('/')[2];
+      await loadMarked();
+      await loadPrism();
+      openPost(postId, false);
+    }
   }
 
-  window.onload = initApp;
+  // Start immediately, don't wait for full page load
+  if(document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+  } else {
+    initApp();
+  }
 </script>
 
   
