@@ -1,3 +1,30 @@
+export default {
+  /*************  ✨ Windsurf Command ⭐  *************/
+  /**
+   * @description A Cloudflare Worker function that handles incoming requests and returns a corresponding response.
+   * @param {Request} request - The incoming request object.
+   * @param {object} env - The environment object containing information about the request.
+   * @param {object} ctx - The context object containing information about the request.
+   * @returns {Promise<Response>} A promise that resolves with the response object.
+   */
+  /*******  b3591160-03ae-46cf-a9eb-c41138a1889b  *******/
+  async fetch(request, _env, _ctx) {
+    const url = new URL(request.url);
+
+    // Serve service worker
+    if (url.pathname === "/sw.js") {
+      return new Response(serviceWorker, {
+        headers: { "Content-Type": "application/javascript" },
+      });
+    }
+
+    // Serve HTML for all other routes
+    return new Response(html, {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  },
+};
+
 const serviceWorker = `
 const CACHE = 'exxeed-v2';
 self.addEventListener('install', e => {
@@ -57,8 +84,8 @@ const html = `
     <meta name="twitter:description" content="Former PMA Cadet turned Full-Stack Developer. Building in public.">
     <meta name="twitter:image" content="https://i.imgur.com/3x1dKUX.jpeg">
 
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=JetBrains+Mono:wght@400;700&family=Manrope:wght@300;400;700&family=Major+Mono+Display&display=swap" rel="stylesheet" />
+    <!-- Fonts: Using Google Fonts CDN for performance. Acceptable risk for non-critical styling resources. -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=JetBrains+Mono:wght@400;700&family=Manrope:wght@300;400;700&family=Major+Mono+Display&display=swap" rel="stylesheet" crossorigin="anonymous" />
 
     <!-- Custom Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cstyle%3E text %7B font-family: monospace; font-weight: bold; fill: %23ff3333; font-size: 80px; %7D %3C/style%3E%3Ctext x='50' y='75' text-anchor='middle'%3EX%3C/text%3E%3C/svg%3E">
@@ -77,8 +104,8 @@ const html = `
     }
     </script>
 
-    <!-- markdown compatibility -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js" defer></script> 
+    <!-- Markdown library: Using CDN for convenience. Consider self-hosting for production. -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js" defer crossorigin="anonymous"></script> 
 
     <style>
   /* --- THEME --- */
@@ -605,10 +632,10 @@ const html = `
     const container = document.getElementById('toast-container');
     if (!container) return;
     const el = document.createElement('div');
-    el.className = `toast ${type}`;
+    el.className = 'toast ' + type;
     el.setAttribute('role', 'alert');
     el.setAttribute('aria-live', 'assertive');
-    el.textContent = `> SYSTEM: ${msg}`;
+    el.textContent = '> SYSTEM: ' + msg;
     container.appendChild(el);
     setTimeout(() => {
         el.style.animation = "fadeOut 0.4s forwards";
@@ -724,7 +751,7 @@ const html = `
             div.className = 'admin-list-item';
             const tagSpan = document.createElement('span');
             tagSpan.style.fontFamily = 'JetBrains Mono';
-            tagSpan.textContent = `${p.tag} - ${p.title}`;
+            tagSpan.textContent = p.tag + ' - ' + p.title;
             const editSpan = document.createElement('span');
             editSpan.style.cursor = 'pointer';
             editSpan.style.textDecoration = 'underline';
