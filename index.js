@@ -1,173 +1,3 @@
-// EXXEED BLOG SYSTEM V9
-const TIMELINE_DATA = [
-  {
-    year: "2025 - PRESENT",
-    title: "Upcoming Full-stack Developer",
-    desc: "Crunching The Odin Project and Scrimba.",
-  },
-  {
-    year: "2024",
-    title: "The Spark",
-    desc: "Enrolled in a degree for IT. Found my calling.",
-  },
-  {
-    year: "2021 - 2024",
-    title: "Philippine Military Academy",
-    desc: "Cadet. Warshocked into a military way of life, polished shoes until they mirrored the soul. (Got injured then was discharged)",
-  },
-  {
-    year: "2018-2021",
-    title: "The Valley of Confusion",
-    desc: "College at Ateneo De Naga, jumped from one course to another.",
-  },
-];
-
-export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
-
-    // SERVICE WORKER
-    if (url.pathname === "/sw.js") {
-      return new Response(serviceWorker, {
-        headers: { "Content-Type": "application/javascript" },
-      });
-    }
-
-    // ROBOTS.TXT
-    if (url.pathname === "/robots.txt") {
-      return new Response(
-        `User-agent: *\nAllow: /\nSitemap: ${url.origin}/sitemap.xml`,
-        {
-          headers: { "Content-Type": "text/plain" },
-        }
-      );
-    }
-
-    // SITEMAP.XML
-    if (url.pathname === "/sitemap.xml") {
-      const posts = (await env.BLOG_KV.get("posts", { type: "json" })) || [];
-      const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>${
-    url.origin
-  }/</loc><priority>1.0</priority><changefreq>daily</changefreq></url>
-  <url><loc>${
-    url.origin
-  }/#archive</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
-${posts
-  .map(
-    (p) =>
-      `  <url><loc>${url.origin}/post/${p.id}</loc><priority>0.9</priority><changefreq>weekly</changefreq></url>`
-  )
-  .join("\n")}
-</urlset>`;
-      return new Response(sitemap, {
-        headers: { "Content-Type": "application/xml" },
-      });
-    }
-
-    // API: GET POSTS
-    if (url.pathname === "/api/posts" && request.method === "GET") {
-      const posts = (await env.BLOG_KV.get("posts", { type: "json" })) || [];
-      return new Response(JSON.stringify(posts), {
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
-        },
-      });
-    }
-
-    // API: GET TIMELINE
-    if (url.pathname === "/api/timeline" && request.method === "GET") {
-      return new Response(JSON.stringify(TIMELINE_DATA), {
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "public, max-age=3600",
-        },
-      });
-    }
-
-    // API: SAVE POST
-    if (
-      url.pathname === "/api/posts" &&
-      (request.method === "POST" || request.method === "PUT")
-    ) {
-      const auth = request.headers.get("Authorization");
-      if (auth !== env.ADMIN_PASS)
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-        });
-      try {
-        const incomingPost = await request.json();
-        if (!incomingPost.title || !incomingPost.content)
-          return new Response("Invalid Data", { status: 400 });
-        let posts = (await env.BLOG_KV.get("posts", { type: "json" })) || [];
-
-        if (request.method === "POST") {
-          // Check for duplicate ID or tag
-          if (
-            posts.some(
-              (p) =>
-                p.id === incomingPost.id ||
-                (p.tag &&
-                  incomingPost.tag &&
-                  p.tag.toLowerCase() === incomingPost.tag.toLowerCase())
-            )
-          ) {
-            return new Response("Duplicate ID or tag", { status: 409 });
-          }
-          posts.unshift(incomingPost);
-        } else {
-          const index = posts.findIndex((p) => p.id === incomingPost.id);
-          if (index !== -1) posts[index] = incomingPost;
-        }
-        await env.BLOG_KV.put("posts", JSON.stringify(posts));
-        return new Response("Saved", { status: 200 });
-      } catch {
-        return new Response("Server Error", { status: 500 });
-      }
-    }
-
-    // DYNAMIC POSTS
-    const postMatch = url.pathname.match(/^\/post\/([a-zA-Z0-9-]+)/);
-    if (postMatch) {
-      const postId = postMatch[1];
-      const posts = (await env.BLOG_KV.get("posts", { type: "json" })) || [];
-      const post = posts.find((p) => p.id === postId);
-
-      if (post) {
-        const postHtml = html
-          .replace(
-            /<title>.*<\/title>/,
-            `<title>${post.title} | EXXEED</title>`
-          )
-          .replace(
-            /<meta name="description" content=".*">/,
-            `<meta name="description" content="${post.teaser}">`
-          );
-        return new Response(postHtml, {
-          headers: {
-            "Content-Type": "text/html; charset=utf-8",
-            "X-Frame-Options": "DENY",
-            "X-Content-Type-Options": "nosniff",
-            "Cache-Control": "public, max-age=300",
-          },
-        });
-      }
-    }
-
-    // SERVE HTML
-    return new Response(html, {
-      headers: {
-        "Content-Type": "text/html; charset=utf-8",
-        "X-Frame-Options": "DENY",
-        "X-Content-Type-Options": "nosniff",
-        "Cache-Control": "public, max-age=300",
-      },
-    });
-  },
-};
-
 const serviceWorker = `
 const CACHE = 'exxeed-v2';
 self.addEventListener('install', e => {
@@ -252,8 +82,7 @@ const html = `
 
     <style>
   /* --- THEME --- */
-  :root {
-    --bg-main: #e0e0e0; --bg-panel: #888888;
+  :root { --bg-main: #e0e0e0; --bg-panel: #888888;
     --text-main: #0a0a0a; --text-muted: #111111;
     --accent: #ff3333; --border: #222222;
     --input-bg: rgba(255,255,255,0.1);
@@ -268,7 +97,7 @@ const html = `
     --focus-ring: #00f0ff;
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { margin: 0; padding: 0; box-sizing: border-box; } 
   
   /* Accessibility Focus Styles */
   :focus-visible {
@@ -533,6 +362,28 @@ const html = `
   }
   .admin-list-item:hover { transform: scale(1.01); border-color: var(--accent); }
 
+  .tag-filter-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: "JetBrains Mono";
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.3s;
+    padding: 0.5rem 1rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .tag-filter-btn:hover, .tag-filter-btn.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+  .tag-filter-btn:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
   @media (max-width: 900px) {
     body { flex-direction: column; overflow-y: auto; height: auto; }
     .left-pane { width: 100%; padding: 2rem; border-bottom: 1px solid var(--border); height: auto; }
@@ -542,7 +393,7 @@ const html = `
     .mobile-toggle { display: block; }
     .dossier-grid { flex-direction: column; align-items: center; text-align: center; }
     
-    .nav-dock { 
+    .nav-dock {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
         flex-direction: column; justify-content: center; background: rgba(0,0,0,0.95);
         border-radius: 0; opacity: 0; pointer-events: none; transform: translateY(-20px);
@@ -570,29 +421,31 @@ const html = `
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
 </button>
 
-<nav class="nav-dock" id="mainNav">
-  <button class="nav-link active" onclick="switchView('home')" aria-label="Go to Home Log">Log</button>
-  <button class="nav-link" onclick="switchView('archive')" aria-label="Go to Archive">Archive</button>
-  <button class="nav-link" onclick="switchView('admin')" aria-label="Admin Access">
-     <svg style="width:18px; height:18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-  </button>
-</nav>
+<header role="banner">
+  <aside class="left-pane">
+      <div style="margin-top: auto;">
+          <div class="mission-stat"><div class="stat-label">OPERATOR</div><div class="stat-val">EX<span class="brand-x">X</span>EED</div></div>
+          <div class="mission-stat"><div class="stat-label">CURRENT OBJ</div><div class="stat-val">BUILD IN PUBLIC</div></div>
+          <div class="mission-stat"><div class="stat-label">STATUS</div><div class="stat-val" style="color: #4caf50;">ONLINE</div></div>
+      </div>
+      <div class="brand-vertical">EX<span class="brand-x">X</span>EED</div>
+  </aside>
+</header>
 
-<aside class="left-pane">
-    <div style="margin-top: auto;">
-        <div class="mission-stat"><div class="stat-label">OPERATOR</div><div class="stat-val">EX<span class="brand-x">X</span>EED</div></div>
-        <div class="mission-stat"><div class="stat-label">CURRENT OBJ</div><div class="stat-val">BUILD IN PUBLIC</div></div>
-        <div class="mission-stat"><div class="stat-label">STATUS</div><div class="stat-val" style="color: #4caf50;">ONLINE</div></div>
-    </div>
-    <div class="brand-vertical">EX<span class="brand-x">X</span>EED</div>
-</aside>
-
-<main class="right-pane" id="rightPane">
+<main class="right-pane" id="rightPane" role="main">
   
+  <nav class="nav-dock" id="mainNav" role="navigation">
+    <button class="nav-link active" onclick="switchView('home')" aria-label="Go to Home Log">Log</button>
+    <button class="nav-link" onclick="switchView('archive')" aria-label="Go to Archive">Archive</button>
+    <button class="nav-link" onclick="switchView('admin')" aria-label="Admin Access">
+       <svg style="width:18px; height:18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+    </button>
+  </nav>
+
   <!-- VIEW 1: HOME -->
-  <div id="view-home" class="content-container" role="tabpanel">
+  <div id="view-home" class="content-container" role="tabpanel" aria-labelledby="view-home-title">
     <span class="meta-tag">MISSION LOG // LATEST</span>
-    <h1 class="article-title">The Journey <br />So Far.</h1>
+    <h1 id="view-home-title" class="article-title" tabindex="-1">The Journey <br />So Far.</h1>
     <div id="home-posts" style="margin-top: 4rem;">Loading...</div>
     
     <div class="dossier-section">
@@ -613,30 +466,31 @@ const html = `
   </div>
 
   <!-- VIEW 2: ARCHIVE -->
-  <div id="view-archive" class="content-container" role="tabpanel">
+  <div id="view-archive" class="content-container" role="tabpanel" aria-labelledby="view-archive-title">
     <span class="meta-tag">FULL DATABASE</span>
-    <h1 class="article-title">All Logs.</h1>
+    <h1 id="view-archive-title" class="article-title" tabindex="-1">All Logs.</h1>
+    <div id="tag-filter-container" style="margin-bottom: 2rem;"></div>
     <div class="search-wrapper">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="11" cy="11" r="8"></circle>
         <path d="m21 21-4.35-4.35"></path>
       </svg>
-      <input type="text" class="search-input" placeholder="Search parameters..." onkeyup="filterList(this.value, 'archive')" aria-label="Search posts in archive">
+      <input type="text" class="search-input" placeholder="Search parameters..." aria-label="Search posts in archive">
       </div>
     <div id="archive-posts"></div>
     <button id="archive-btn" class="see-more-btn" style="display:none" onclick="toggleLimit('archive')">See More [ + ]</button>
   </div>
 
   <!-- VIEW 3: SINGLE -->
-  <div id="view-single" class="content-container" role="tabpanel">
+  <div id="view-single" class="content-container" role="tabpanel" aria-labelledby="view-single-title">
     <a class="back-btn" onclick="switchView('home')" tabindex="0" role="button" onkeydown="handleKey(event, () => switchView('home'))" aria-label="Return to previous page"><< RETURN</a>
     <div id="single-post-content"></div>
   </div>
 
   <!-- VIEW 4: ADMIN -->
-  <div id="view-admin" class="content-container" role="tabpanel">
+  <div id="view-admin" class="content-container" role="tabpanel" aria-labelledby="view-admin-title">
     <span class="meta-tag">RESTRICTED ACCESS</span>
-    <h1 class="article-title" id="admin-header">Admin Link</h1>
+    <h1 id="view-admin-title" class="article-title" tabindex="-1">Admin Link</h1>
     
     <div id="admin-gate" class="admin-gate">
         <p style="font-family:'JetBrains Mono'; margin-bottom:1rem; color:var(--text-muted);">ENCRYPTED CONNECTION REQUIRED</p>
@@ -666,7 +520,7 @@ const html = `
                       <circle cx="11" cy="11" r="8"></circle>
                       <path d="m21 21-4.35-4.35"></path>
               </svg>
-              <input type="text" class="search-input" placeholder="Search database..." onkeyup="filterList(this.value, 'admin')" aria-label="Search posts in admin database">
+              <input type="text" class="search-input" placeholder="Search database..." aria-label="Search posts in admin database">
               </div>
             <div id="admin-post-list"></div>
             <button id="admin-btn" class="see-more-btn" style="display:none" onclick="toggleLimit('admin')">See More [ + ]</button>
@@ -677,6 +531,21 @@ const html = `
 </main>
 
 <script>
+  function debounce(func, wait, immediate) {
+    let timeout;
+    return function() {
+      const context = this, args = arguments;
+      const later = function() {
+        timeout = null;
+        if (!immediate) func.apply(context, args);
+      };
+      const callNow = immediate && !timeout;
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+      if (callNow) func.apply(context, args);
+    };
+  };
+
   (function() {
     const path = window.location.pathname;
     let targetView = 'home';
@@ -709,15 +578,23 @@ const html = `
   let adminPass = null;
 
   function initTheme() {
-    const s = localStorage.getItem('theme');
-    if(s === 'dark' || (!s && window.matchMedia('(prefers-color-scheme: dark)').matches)) 
-        document.documentElement.setAttribute('data-theme', 'dark');
+    try {
+      const s = localStorage.getItem('theme');
+      if(s === 'dark' || (!s && window.matchMedia('(prefers-color-scheme: dark)').matches))
+          document.documentElement.setAttribute('data-theme', 'dark');
+    } catch(e) {
+      console.error('Theme initialization failed:', e);
+    }
   }
   function toggleTheme() {
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    if(isDark) { document.documentElement.removeAttribute('data-theme'); localStorage.setItem('theme', 'light'); }
-    else { document.documentElement.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark'); }
-    showToast("THEME UPDATED", "success");
+    try {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      if(isDark) { document.documentElement.removeAttribute('data-theme'); localStorage.setItem('theme', 'light'); } 
+      else { document.documentElement.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark'); }
+      showToast("THEME UPDATED", "success");
+    } catch(e) {
+      console.error('Theme toggle failed:', e);
+    }
   }
   initTheme();
 
@@ -726,11 +603,12 @@ const html = `
   // --- NOTIFICATION SYSTEM ---
   function showToast(msg, type) {
     const container = document.getElementById('toast-container');
+    if (!container) return;
     const el = document.createElement('div');
-    el.className = \`toast \${type}\`;
+    el.className = `toast ${type}`;
     el.setAttribute('role', 'alert');
     el.setAttribute('aria-live', 'assertive');
-    el.textContent = \`> SYSTEM: \${msg}\`;
+    el.textContent = `> SYSTEM: ${msg}`;
     container.appendChild(el);
     setTimeout(() => {
         el.style.animation = "fadeOut 0.4s forwards";
@@ -770,7 +648,8 @@ const html = `
       buildSearchIndex();
       timelineData = await resTime.json();
       renderViews();
-    } catch { 
+    } catch (error) {
+        console.error('Failed to fetch data:', error);
         homeDiv.innerHTML = '<p style="color:var(--text-muted);">Failed to load data. Please refresh.</p>';
         showToast("DATA CONNECTION FAILED", "error");
     }
@@ -783,6 +662,7 @@ const html = `
     homeDiv.innerHTML = '';
     homeDiv.appendChild(frag);
     renderTimeline();
+    renderTagFilters();
     renderList('archive');
     renderList('admin');
   }
@@ -795,7 +675,18 @@ const html = `
     timelineData.slice(0, limits.timeline).forEach(item => {
         const div = document.createElement('div');
         div.className = 'timeline-item';
-        div.innerHTML = \`<span class="timeline-year">\${item.year}</span><h3 class="timeline-title">\${item.title}</h3><p class="timeline-desc">\${item.desc}</p>\`;
+        const yearSpan = document.createElement('span');
+        yearSpan.className = 'timeline-year';
+        yearSpan.textContent = item.year;
+        const titleH3 = document.createElement('h3');
+        titleH3.className = 'timeline-title';
+        titleH3.textContent = item.title;
+        const descP = document.createElement('p');
+        descP.className = 'timeline-desc';
+        descP.textContent = item.desc;
+        div.appendChild(yearSpan);
+        div.appendChild(titleH3);
+        div.appendChild(descP);
         frag.appendChild(div);
     });
     container.innerHTML = '';
@@ -805,28 +696,81 @@ const html = `
     btn.style.display = timelineData.length > defaults.timeline ? 'block' : 'none';
   }
 
+  let isLoadingMore = false;
+  let scrollHandlerAttached = false;
+  const handleScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    if (clientHeight + scrollTop >= scrollHeight - 5) {
+      renderMorePosts('archive');
+    }
+  }
+
   function renderList(type) {
      const container = document.getElementById(type === 'archive' ? 'archive-posts' : 'admin-post-list');
      const btn = document.getElementById(type === 'archive' ? 'archive-btn' : 'admin-btn');
      const frag = document.createDocumentFragment();
      
+     if(type === 'archive' && !scrollHandlerAttached) {
+       btn.style.display = 'none';
+       const rightPane = document.getElementById('rightPane');
+       rightPane.addEventListener('scroll', handleScroll, { passive: true });
+       scrollHandlerAttached = true;
+     }
+
      filteredPosts.slice(0, limits[type]).forEach(p => {
         if(type === 'archive') frag.appendChild(createPostHTML(p));
         else {
             const div = document.createElement('div');
             div.className = 'admin-list-item';
-            div.innerHTML = \`<span style="font-family:'JetBrains Mono'">\${p.tag} - \${p.title}</span><span style="cursor:pointer; text-decoration:underline" tabindex="0" role="button" onkeydown="handleKey(event, () => loadIntoForm('\${p.id}'))" onclick="loadIntoForm('\${p.id}')">[EDIT]</span>\`;
+            const tagSpan = document.createElement('span');
+            tagSpan.style.fontFamily = 'JetBrains Mono';
+            tagSpan.textContent = `${p.tag} - ${p.title}`;
+            const editSpan = document.createElement('span');
+            editSpan.style.cursor = 'pointer';
+            editSpan.style.textDecoration = 'underline';
+            editSpan.tabIndex = 0;
+            editSpan.setAttribute('role', 'button');
+            editSpan.textContent = '[EDIT]';
+            editSpan.onclick = () => loadIntoForm(p.id);
+            editSpan.onkeydown = (e) => handleKey(e, () => loadIntoForm(p.id));
+            div.appendChild(tagSpan);
+            div.appendChild(editSpan);
             frag.appendChild(div);
         }
      });
      container.innerHTML = '';
      container.appendChild(frag);
 
-     btn.textContent = limits[type] > defaults[type] ? "See Less [ - ]" : "See More [ + ]";
-     btn.style.display = filteredPosts.length > defaults[type] ? 'block' : 'none';
+     if(type !== 'archive') {
+        btn.textContent = limits[type] > defaults[type] ? "See Less [ - ]" : "See More [ + ]";
+        btn.style.display = filteredPosts.length > defaults[type] ? 'block' : 'none';
+     }
+  }
+
+  function renderMorePosts(type) {
+    if (type !== 'archive' || isLoadingMore || limits[type] >= filteredPosts.length) return;
+    isLoadingMore = true;
+
+    const container = document.getElementById(type === 'archive' ? 'archive-posts' : 'admin-post-list');
+    const frag = document.createDocumentFragment();
+    
+    const currentLimit = limits[type];
+    const newLimit = currentLimit + 5;
+
+    filteredPosts.slice(currentLimit, newLimit).forEach(p => {
+        if(type === 'archive') frag.appendChild(createPostHTML(p));
+    });
+
+    container.appendChild(frag);
+    limits[type] = newLimit;
+
+    setTimeout(() => {
+        isLoadingMore = false;
+    }, 300);
   }
 
   function toggleLimit(type) {
+    if(type === 'archive') return;
     if(limits[type] > defaults[type]) limits[type] = defaults[type];
     else limits[type] += 5;
     if(type === 'timeline') renderTimeline();
@@ -844,7 +788,10 @@ const html = `
 
   function filterList(query, type) {
      const q = query.toLowerCase();
-     if(searchIndex.length) {
+     if (q === 'all') {
+        filteredPosts = allPosts;
+     }
+     else if(searchIndex.length) {
        const ids = searchIndex.filter(s => s.text.includes(q)).map(s => s.id);
        filteredPosts = allPosts.filter(p => ids.includes(p.id));
      } else {
@@ -852,6 +799,46 @@ const html = `
      }
      limits[type] = defaults[type];
      renderList(type);
+  }
+  
+  function setActiveFilterButton(activeBtn) {
+    document.querySelectorAll('.tag-filter-btn').forEach(btn => {
+      btn.classList.remove('active');
+      btn.setAttribute('aria-pressed', 'false');
+    });
+    activeBtn.classList.add('active');
+    activeBtn.setAttribute('aria-pressed', 'true');
+  }
+
+  function renderTagFilters() {
+    const container = document.getElementById('tag-filter-container');
+    const tags = [...new Set(allPosts.map(p => p.tag).filter(tag => tag))];
+    const frag = document.createDocumentFragment();
+
+    const allBtn = document.createElement('button');
+    allBtn.className = 'tag-filter-btn active';
+    allBtn.textContent = 'All';
+    allBtn.setAttribute('aria-pressed', 'true');
+    allBtn.onclick = () => {
+        setActiveFilterButton(allBtn);
+        filterList('all', 'archive');
+    }
+    frag.appendChild(allBtn);
+
+    tags.forEach(tag => {
+        const btn = document.createElement('button');
+        btn.className = 'tag-filter-btn';
+        btn.textContent = tag;
+        btn.setAttribute('aria-pressed', 'false');
+        btn.onclick = () => {
+            setActiveFilterButton(btn);
+            filterList(tag, 'archive');
+        }
+        frag.appendChild(btn);
+    });
+
+    container.innerHTML = '';
+    container.appendChild(frag);
   }
 
   function createPostHTML(post) {
@@ -862,7 +849,29 @@ const html = `
     div.setAttribute('aria-label', 'Read ' + post.title);
     div.onclick = () => openPost(post.id);
     div.onkeydown = (e) => handleKey(e, () => openPost(post.id));
-    div.innerHTML = \`<div class="post-meta"><span class="post-tag">\${post.tag}</span><span class="post-date">\${post.date}</span></div><h2 class="post-title">\${post.title}</h2><p class="post-teaser">\${post.teaser}</p>\`;
+    
+    const metaDiv = document.createElement('div');
+    metaDiv.className = 'post-meta';
+    const tagSpan = document.createElement('span');
+    tagSpan.className = 'post-tag';
+    tagSpan.textContent = post.tag;
+    const dateSpan = document.createElement('span');
+    dateSpan.className = 'post-date';
+    dateSpan.textContent = post.date;
+    metaDiv.appendChild(tagSpan);
+    metaDiv.appendChild(dateSpan);
+    
+    const titleH2 = document.createElement('h2');
+    titleH2.className = 'post-title';
+    titleH2.textContent = post.title;
+    
+    const teaserP = document.createElement('p');
+    teaserP.className = 'post-teaser';
+    teaserP.textContent = post.teaser;
+    
+    div.appendChild(metaDiv);
+    div.appendChild(titleH2);
+    div.appendChild(teaserP);
     return div;
   }
 
@@ -871,9 +880,19 @@ const html = `
     document.querySelectorAll(".nav-link").forEach(el => el.classList.remove("active"));
     
     const links = document.querySelectorAll(".nav-link");
-    if (view === 'home') links[0].classList.add("active");
-    if (view === 'archive') links[1].classList.add("active");
-    if (view === 'admin') links[2].classList.add("active");
+    let viewName = '';
+    if (view === 'home') {
+        links[0].classList.add("active");
+        viewName = 'Home';
+    }
+    if (view === 'archive') {
+        links[1].classList.add("active");
+        viewName = 'Archive';
+    }
+    if (view === 'admin') {
+        links[2].classList.add("active");
+        viewName = 'Admin';
+    }
 
     document.querySelectorAll(".content-container").forEach(el => el.classList.remove("active-view"));
     
@@ -885,6 +904,11 @@ const html = `
     
     activeEl.classList.add('active-view');
     document.getElementById("rightPane").scrollTop = 0;
+
+    const newHeading = activeEl.querySelector('h1');
+    if(newHeading) {
+        setTimeout(() => newHeading.focus(), 400);
+    }
 
     if (pushToHistory) {
       history.pushState({ view: view }, "", view === 'home' ? '/' : '/' + view);
@@ -898,7 +922,8 @@ const html = `
           document.getElementById('gate-pass').value = '';
           document.getElementById('admin-gate').style.display = 'none';
           document.getElementById('admin-panel').classList.add('unlocked');
-          document.getElementById('admin-header').innerText = "Dashboard";
+          const adminTitle = document.getElementById('view-admin-title');
+          if(adminTitle) adminTitle.textContent = "Dashboard";
           showToast("ACCESS GRANTED", "success");
       } else { 
           showToast("INVALID PASSKEY", "error"); 
@@ -908,11 +933,32 @@ const html = `
   function openPost(id, pushToHistory = true) {
     const p = allPosts.find(x => x.id === id);
     if(!p) return;
-    document.getElementById('single-post-content').innerHTML = \`
-        <span class="meta-tag">STATUS: ARCHIVED</span>
-        <h1 class="article-title">\${p.title}</h1>
-        <div class="article-body">\${marked.parse(p.content)}</div>
-    \`;
+    
+    const container = document.getElementById('single-post-content');
+    container.innerHTML = '';
+    
+    const metaTag = document.createElement('span');
+    metaTag.className = 'meta-tag';
+    metaTag.textContent = 'STATUS: ARCHIVED';
+    
+    const title = document.createElement('h1');
+    title.className = 'article-title';
+    title.id = 'view-single-title';
+    title.tabIndex = -1;
+    title.textContent = p.title;
+    
+    const body = document.createElement('div');
+    body.className = 'article-body';
+    if (typeof marked !== 'undefined' && marked.parse) {
+      body.innerHTML = marked.parse(p.content);
+    } else {
+      body.textContent = p.content;
+    }
+    
+    container.appendChild(metaTag);
+    container.appendChild(title);
+    container.appendChild(body);
+    
     if (pushToHistory) {
       history.pushState({ view: 'single', postId: id }, "", "/post/" + id);
     }
@@ -1009,10 +1055,9 @@ const html = `
   }
 
   // Prepare payload
-  // Use a robust unique ID generator (UUID) for new posts
   const method = id ? 'PUT' : 'POST';
+  // Note: Simple UUID v4 generator for client-side use only. Not cryptographically secure.
   const generateUUID = () => {
-    // Simple RFC4122 version 4 compliant UUID generator
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
       const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);
@@ -1054,26 +1099,49 @@ const html = `
       } else {
           showToast("SERVER ERROR - TRY AGAIN", "error");
       }
-  } catch { 
+  } catch (error) {
+      console.error('Post submission failed:', error);
       showToast("NETWORK ERROR - CHECK CONNECTION", "error"); 
     }
   }
 
   // Service Worker
   if('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js');
+    navigator.serviceWorker.register('/sw.js').catch(err => 
+      console.error('Service worker registration failed:', err)
+    );
   }
 
-  // Lazy Load Images
+  // Enhanced Lazy Loading with IntersectionObserver
   const lazyLoad = () => {
-    document.querySelectorAll('img.lazy').forEach(img => {
-      if(img.getBoundingClientRect().top < window.innerHeight) {
-        img.src = img.dataset.src;
-        img.classList.remove('lazy');
-      }
-    });
+    const lazyElements = document.querySelectorAll('[data-src]');
+
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const el = entry.target;
+            el.src = el.dataset.src;
+            el.removeAttribute('data-src');
+            observer.unobserve(el);
+          }
+        });
+      });
+      lazyElements.forEach(el => observer.observe(el));
+    } else {
+      // Fallback for older browsers
+      const loadVisibleElements = () => {
+        lazyElements.forEach(el => {
+          if (el.getBoundingClientRect().top < window.innerHeight && el.dataset.src) {
+            el.src = el.dataset.src;
+            el.removeAttribute('data-src');
+          }
+        });
+      };
+      window.addEventListener('scroll', debounce(loadVisibleElements, 100));
+      loadVisibleElements();
+    }
   };
-  window.addEventListener('scroll', lazyLoad);
   lazyLoad();
 
   async function initApp() {
@@ -1088,6 +1156,19 @@ const html = `
       switchView('admin', false);
     } else {
       switchView('home', false);
+    }
+    const archiveSearchInput = document.querySelector('#view-archive .search-input');
+    if (archiveSearchInput) {
+      archiveSearchInput.addEventListener('keyup', debounce(function() { 
+          filterList(this.value, 'archive');
+      }, 250));
+    }
+
+    const adminSearchInput = document.querySelector('#view-admin .search-input');
+    if (adminSearchInput) {
+      adminSearchInput.addEventListener('keyup', debounce(function() { 
+          filterList(this.value, 'admin');
+      }, 250));
     }
   }
 
