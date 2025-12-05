@@ -13,4 +13,4 @@ EXXEED is a lightweight, high-performance blogging platform and portfolio site b
 *   **Frontend:** HTML5, CSS3 (CSS Variables, Flexbox), Vanilla JavaScript
 *   **Deployment:** Wrangler CLI
 
-## Checkout the live site [here](https://iexceed.xyz)
+## Checkout the [live site here](https://iexceed.xyz)
