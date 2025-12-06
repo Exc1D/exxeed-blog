@@ -544,7 +544,7 @@ const html = `
   .dossier-section { margin-top: 6rem; padding-top: 4rem; border-top: 2px solid var(--border); }
   .dossier-grid { display: flex; gap: 3rem; align-items: flex-start; margin-bottom: 3rem; }
   .dossier-avatar {
-    width: 150px; height: 150px; border-radius: 50%; border: 2px solid var(--muted);
+    width: 150px; height: 150px; border-radius: 50%; border: 2px solid var(--text-muted);
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.3); object-fit: cover; flex-shrink: 0; transition: all 0.3s ease;
   }
   [data-theme="dark"] .dossier-avatar { box-shadow: 0 0 20px rgba(0, 240, 255, 0.3); }
