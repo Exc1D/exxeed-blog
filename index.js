@@ -434,7 +434,7 @@ const html = `
     text-transform: uppercase; letter-spacing: 1px; transition: all 0.3s; cursor: pointer; position: relative; display: flex; align-items: center;
     border: none; background: none;
   }
-  .nav-link:hover, .nav-link.active { color: #fff; text-shadow: 0 0 8px var(--accent); }
+  .nav-link:hover, .nav-link.active { color: #fff }
   .nav-link.active::after {
     content: ''; position: absolute; bottom: -4px; left: 0; width: 100%; height: 2px; background: var(--accent); box-shadow: 0 0 5px var(--accent);
   }
@@ -708,7 +708,7 @@ const html = `
     <div style="margin-top: auto;">
         <div class="mission-stat"><div class="stat-label">OPERATOR</div><div class="stat-val">EX<span class="brand-x">X</span>EED</div></div>
         <div class="mission-stat"><div class="stat-label">CURRENT OBJ</div><div class="stat-val">BUILD IN PUBLIC</div></div>
-        <div class="mission-stat"><div class="stat-label">STATUS</div><div class="stat-val" style="color: #4caf50;">ONLINE</div></div>
+        <div class="mission-stat"><div class="stat-label">LOCATION</div><div class="stat-val">PHILIPPINES</div></div>
     </div>
     <div class="brand-vertical">EX<span class="brand-x">X</span>EED</div>
 </aside>
@@ -722,7 +722,7 @@ const html = `
     <div id="home-posts" style="margin-top: 4rem;">Loading...</div>
     
     <div class="dossier-section">
-        <h2 class="article-title" style="font-size: 2.5rem;">About EX<span class="brand-x">X</span>EED</h2>
+        <h2 class="article-title" style="font-size: 2.5rem;">About Me</h2>
         
         <div class="dossier-grid">
              <img data-src="https://i.imgur.com/3x1dKUX.jpeg" class="dossier-avatar lazy" alt="Operator Avatar" onerror="this.src='https://via.placeholder.com/150/ff3333/000000?text=EXXEED'">
@@ -1049,7 +1049,7 @@ const html = `
     div.onclick = () => openPost(post.id);
     div.onkeydown = (e) => handleKey(e, () => openPost(post.id));
     const readTime = calculateReadingTime(post.content || '');
-    div.innerHTML = \`<div class="post-meta"><span class="post-tag">\${post.tag}</span><span class="post-date">\${post.date}</span><span class="reading-time">📖 \${readTime} min read</span></div><h2 class="post-title">\${post.title}</h2><p class="post-teaser">\${post.teaser}</p>\`;
+    div.innerHTML = \`<div class="post-meta"><span class="post-tag">\${post.tag}</span><span class="post-date">\${post.date}</span><span class="reading-time"> \${readTime} min read</span></div><h2 class="post-title">\${post.title}</h2><p class="post-teaser">\${post.teaser}</p>\`;
     return div;
   }
 
@@ -1115,7 +1115,7 @@ const html = `
         <span class="meta-tag">STATUS: ARCHIVED</span>
         <h1 class="article-title">\${p.title}</h1>
         <div class="post-meta-info">
-          <span class="reading-time">📖 \${readTime} min read</span>
+          <span class="reading-time"> \${readTime} min read</span>
           <span class="post-date">\${p.date}</span>
         </div>
         <div class="article-body">\${marked.parse(p.content)}</div>
