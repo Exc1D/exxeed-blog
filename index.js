@@ -1,7 +1,12 @@
 // EXXEED BLOG SYSTEM V9
 const TIMELINE_DATA = [
   {
-    year: "2025 - PRESENT",
+    year: "2026-PRESENT",
+    title: "Student Apprentice | Consultare Inc. Group",
+    desc: "Got a part-time job. Learning the ropes of real-world development.",
+  },
+  {
+    year: "2025-PRESENT",
     title: "Upcoming Full-stack Developer",
     desc: "Crunching The Odin Project and Scrimba.",
   },
@@ -39,7 +44,7 @@ export default {
         `User-agent: *\nAllow: /\nSitemap: ${url.origin}/sitemap.xml`,
         {
           headers: { "Content-Type": "text/plain" },
-        }
+        },
       );
     }
 
@@ -57,7 +62,7 @@ export default {
 ${posts
   .map(
     (p) =>
-      `  <url><loc>${url.origin}/post/${p.id}</loc><priority>0.9</priority><changefreq>weekly</changefreq></url>`
+      `  <url><loc>${url.origin}/post/${p.id}</loc><priority>0.9</priority><changefreq>weekly</changefreq></url>`,
   )
   .join("\n")}
 </urlset>`;
@@ -97,7 +102,7 @@ ${posts
           JSON.stringify({ success: true, views: parseInt(views) + 1 }),
           {
             headers: { "Content-Type": "application/json" },
-          }
+          },
         );
       } catch {
         return new Response(JSON.stringify({ success: false }), {
@@ -113,7 +118,7 @@ ${posts
         posts.map(async (p) => ({
           ...p,
           views: parseInt((await env.BLOG_KV.get(`views:${p.id}`)) || "0"),
-        }))
+        })),
       );
       const popular = postsWithViews
         .sort((a, b) => b.views - a.views)
@@ -142,7 +147,7 @@ ${posts
       <description>${p.teaser}</description>
       <pubDate>${p.date}</pubDate>
       <guid>${url.origin}/post/${p.id}</guid>
-    </item>`
+    </item>`,
   )
   .join("\n")}
   </channel>
@@ -176,7 +181,7 @@ ${posts
                 p.id === incomingPost.id ||
                 (p.tag &&
                   incomingPost.tag &&
-                  p.tag.toLowerCase() === incomingPost.tag.toLowerCase())
+                  p.tag.toLowerCase() === incomingPost.tag.toLowerCase()),
             )
           ) {
             return new Response("Duplicate ID or tag", { status: 409 });
@@ -204,11 +209,11 @@ ${posts
         const postHtml = html
           .replace(
             /<title>.*<\/title>/,
-            `<title>${post.title} | EXXEED</title>`
+            `<title>${post.title} | EXXEED</title>`,
           )
           .replace(
             /<meta name="description" content=".*">/,
-            `<meta name="description" content="${post.teaser}">`
+            `<meta name="description" content="${post.teaser}">`,
           );
         return new Response(postHtml, {
           headers: {
